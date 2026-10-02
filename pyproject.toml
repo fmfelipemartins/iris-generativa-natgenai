@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iris-generativa-natgenai"
+version = "2.2.0"
+description = "Experimento Iris Generativa com Computação Evolutiva e NatGenAI."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy==2.5.3",
+    "pandas==3.0.6",
+    "matplotlib==3.11.2",
+    "scikit-learn==1.9.1",
+    "pygad==3.7.0",
+    "scipy==1.18.1",
+]
+
+[tool.setuptools.packages.find]
+include = ["iris_generativa*"]

@@ -1,0 +1,38 @@
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Cache e bytecode do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Metadados e artefatos de empacotamento
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Ferramentas de teste, análise e cobertura
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Arquivos temporários
+*.log
+*.tmp
+*.bak
+*~
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
