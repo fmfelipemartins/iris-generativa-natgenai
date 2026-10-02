@@ -43,9 +43,9 @@ A base Iris é tratada como um problema multitarefa, em que cada espécie corres
 
 O fitness generativo é definido por:
 
-\[
+$$
 F(x)=0{,}50P(x)+0{,}25N(x)+0{,}25C(x)
-\]
+$$
 
 em que:
 
@@ -175,13 +175,13 @@ Repete as condições principais em múltiplas seeds para avaliar estabilidade d
 
 ### Sensibilidade do SBX
 
-Avalia diferentes valores do parâmetro \(\eta\), responsável pela concentração dos descendentes em torno dos pais.
+Avalia diferentes valores do parâmetro $\eta$, responsável pela concentração dos descendentes em torno dos pais.
 
 As configurações estudadas incluem:
 
-- \(\eta = 5\);
-- \(\eta = 30\);
-- \(\eta = 50\).
+- $\eta = 5$;
+- $\eta = 30$;
+- $\eta = 50$.
 
 ### Random Mating Probability — RMP
 
@@ -222,15 +222,15 @@ Entre elas:
 
 A interpretação deve considerar conjuntamente:
 
-\[
-	ext{fidelidade}
+$$
+\text{fidelidade}
 +
-	ext{novidade}
+\text{novidade}
 +
-	ext{diversidade}
+\text{diversidade}
 +
-	ext{coerência}
-\]
+\text{coerência}
+$$
 
 Baixa distinguibilidade Real × Sintético, isoladamente, não é suficiente para caracterizar um bom gerador, pois memorizar ou copiar registros reais também poderia reduzir a capacidade de discriminação.
 
