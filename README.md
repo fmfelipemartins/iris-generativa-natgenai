@@ -274,7 +274,6 @@ Mudanças futuras em fitness, operadores, seleção, hiperparâmetros, avaliaç�
 ## Referências principais
 
 - Shi, Y. et al. **Evolutionary Computation as Natural Generative AI**. arXiv:2510.08590.
-- Luke, S. **Essentials of Metaheuristics**.
 - PyGAD — documentação oficial.
 
 ## Licença
