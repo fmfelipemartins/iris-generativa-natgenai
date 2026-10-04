@@ -274,8 +274,6 @@ Mudanças futuras em fitness, operadores, seleção, hiperparâmetros, avaliaç�
 ## Referências principais
 
 - Shi, Y. et al. **Evolutionary Computation as Natural Generative AI**. arXiv:2510.08590.
-- Whitley, D. **A Genetic Algorithm Tutorial**. *Statistics and Computing*, 1994.
-- Mitchell, M. **An Introduction to Genetic Algorithms**. MIT Press, 1996.
 - Luke, S. **Essentials of Metaheuristics**.
 - PyGAD — documentação oficial.
 
