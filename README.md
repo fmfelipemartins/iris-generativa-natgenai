@@ -15,7 +15,17 @@ python -m pip install -e . --no-deps
 jupyter notebook notebooks/Iris_Generativa_NatGenAI.ipynb
 ```
 
-Os pins anteriores do projeto foram preservados em `requirements.txt`; foram acrescentados PyTorch e tqdm. O ambiente efetivamente utilizado nesta validação está em `requirements-validation.txt`. Para reproduzir esse ambiente, use esse arquivo no lugar de `requirements.txt`. PyTorch é usado em CPU; não há exigência de GPU.
+Para instalar e testar no ambiente Windows/Python 3.14 existente:
+
+```powershell
+python -m pip install --only-binary=:all: -r requirements-validation.txt
+python -m pip check
+python -m pytest -q
+```
+
+`requirements-validation.txt` reutiliza `requirements.txt` e acrescenta pytest; não força o pandas 2.2.3 do ambiente anterior. A opção `--only-binary=:all:` evita compilação local e informa se algum pacote não possui distribuição compatível. Não é necessário trocar de versão do Python para tentar essa instalação. PyTorch é usado em CPU; não há exigência de GPU.
+
+O ambiente Linux/Python 3.12 efetivamente usado nos testes anteriores foi preservado como registro histórico em `docs/environment-validation-py312.txt`; não use esse registro para instalar no Windows/Python 3.14. A execução nessa plataforma deve ser confirmada pelos testes locais.
 
 Em `iris_generativa/config.py`, cada hiperparâmetro tem comentário explicativo. Configure antes de importar o pacote e reinicie o kernel após mudanças:
 

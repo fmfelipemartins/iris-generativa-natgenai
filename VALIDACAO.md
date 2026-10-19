@@ -13,7 +13,7 @@ A implementação foi validada no perfil **quick**. O protocolo científico comp
 
 ## Ambiente utilizado
 
-Python 3.12.14; NumPy 2.3.5; pandas 2.2.3; Matplotlib 3.10.8; scikit-learn 1.8.0; SciPy 1.17.0; PyGAD 3.7.0; PyTorch 2.14.1; tqdm 4.70.1. O VAE utilizou CPU. As versões estão fixadas em `requirements-validation.txt`. A pilha original de dependências foi mantida em `requirements.txt` e não foi integralmente reinstalada nesta validação.
+Python 3.12.14; NumPy 2.3.5; pandas 2.2.3; Matplotlib 3.10.8; scikit-learn 1.8.0; SciPy 1.17.0; PyGAD 3.7.0; PyTorch 2.14.1; tqdm 4.70.1. O VAE utilizou CPU. As versões desse ambiente estão registradas em `docs/environment-validation-py312.txt`. A pilha original de dependências foi mantida em `requirements.txt` e não foi integralmente reinstalada nesta validação.
 
 ## Observações funcionais do perfil rápido
 
@@ -341,3 +341,10 @@ A separação entre implementação e notebook permite que:
 - novos experimentos possam ser adicionados sem aumentar desnecessariamente a complexidade visual do notebook.
 
 Com a validação operacional concluída e os artefatos locais excluídos do versionamento, o projeto está estruturalmente preparado para ser publicado em um repositório Git.
+
+
+## Correção de instalação no Windows/Python 3.14
+
+O instalador de validação anterior fixava pandas 2.2.3, que levou o pip no computador do usuário a tentar compilar o pacote e falhar por falta das ferramentas Visual Studio. `requirements-validation.txt` agora referencia as dependências principais e acrescenta pytest. O registro histórico do ambiente Linux/Python 3.12 foi separado em `docs/environment-validation-py312.txt`. Isso corrige a divergência dos arquivos de instalação, sem alterar os algoritmos. A validação funcional em Windows/Python 3.14 depende da execução local.
+
+Foi realizada resolução sem instalação das 11 dependências diretas, exigindo wheels para CPython 3.14/Windows x86-64: todas foram encontradas. A resolução transitiva cruzada não foi concluída: o pip executado em Linux avaliou marcadores Linux do Torch apesar do alvo Windows. Portanto, essa checagem não equivale a instalação ou execução em Windows.
