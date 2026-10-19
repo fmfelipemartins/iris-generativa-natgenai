@@ -123,3 +123,47 @@ class VAEGenerator:
 
     def history(self):
         return pd.DataFrame(self.training_history)
+
+    def diagnose(self, populations):
+        """Sonda determinística do encoder/decoder; não modifica RNG de treinamento."""
+        probe = torch.Generator(device="cpu").manual_seed(config.VAE_DIAGNOSTIC_SEED)
+        latent = torch.randn(
+            (config.VAE_DIAGNOSTIC_SAMPLES, self.latent), generator=probe
+        )
+        rows = []
+        with torch.no_grad():
+            decoded = []
+            for index, task in enumerate(self.tasks):
+                condition = torch.eye(len(self.tasks))[index].repeat(len(latent), 1)
+                decoded.append(
+                    self.model.decoder(torch.cat((latent, condition), dim=1))
+                )
+            for index, task in enumerate(self.tasks):
+                x = torch.tensor(np.asarray(populations[task]), dtype=torch.float32)
+                condition = torch.eye(len(self.tasks))[index].repeat(len(x), 1)
+                encoded = self.model.encoder(torch.cat((x, condition), dim=1))
+                mu = self.model.mu(encoded)
+                logvar = self.model.logvar(encoded).clamp(-12, 12)
+                kl = -0.5 * (1 + logvar - mu.square() - logvar.exp()).sum(1).mean()
+                active = (
+                    mu.var(0, unbiased=False) > config.VAE_ACTIVE_UNIT_THRESHOLD
+                ).sum()
+                alternatives = [
+                    ((decoded[index] - d) ** 2).sum(1).mean().item()
+                    for i, d in enumerate(decoded)
+                    if i != index
+                ]
+                rows.append(
+                    dict(
+                        task=task,
+                        encoder_kl=float(kl),
+                        active_units=int(active),
+                        decoder_latent_variance=float(
+                            decoded[index].var(0, unbiased=False).sum()
+                        ),
+                        decoder_condition_effect=float(np.mean(alternatives))
+                        if alternatives
+                        else 0.0,
+                    )
+                )
+        return rows

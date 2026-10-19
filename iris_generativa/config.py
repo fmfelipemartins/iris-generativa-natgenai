@@ -57,3 +57,10 @@ RUN_POLYNOMIAL_LAB = True  # Habilitar laboratório separado de mutação.
 RUN_EXTENDED = True  # Habilitar as três famílias de geradores adicionais.
 RUN_BENCHMARKS = True  # Habilitar cenários artificiais bidimensionais.
 RUN_SELECTION_STUDY = True  # Habilitar comparação explícita das políticas de seleção.
+
+SBX_MODE = "symmetric"  # Ramos SBX equiprováveis; legacy_lower apenas para auditoria.
+RECORD_DIAGNOSTICS = True  # Registrar candidatos e métricas sem afetar a evolução.
+VAE_DIAGNOSTIC_SAMPLES = 128  # Latentes fixos por tarefa para sondar o decoder.
+VAE_DIAGNOSTIC_SEED = 731  # Seed independente usada somente nas sondagens.
+VAE_ACTIVE_UNIT_THRESHOLD = 0.01  # Limiar descritivo da variância de mu por dimensão.
+VAE_ABLATION_SEEDS = (0, 1, 2)  # Seeds pareadas exploratórias; não seleção definitiva.

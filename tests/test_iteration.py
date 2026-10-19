@@ -64,12 +64,25 @@ def test_original_operators_regression(iris, tmp_path):
     spec = importlib.util.spec_from_file_location("iris_generativa.baseline", path)
     baseline = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(baseline)
+    from iris_generativa.operators import pygad_sbx_child
+
+    def legacy_child(a, b, engine, context):
+        engine.iris_sbx_mode = "legacy_lower"
+        return pygad_sbx_child(a, b, engine, context)
+
+    baseline.pygad_sbx_child = legacy_child
     for probability in (0.0, 0.5, 1.0):
         old, old_history = baseline.run_generator(
             ctx, 42, probability, pop_size=10, generations=2
         )
         new, history = run_generator(
-            ctx, 42, probability, pop_size=10, generations=2, show_progress=False
+            ctx,
+            42,
+            probability,
+            pop_size=10,
+            generations=2,
+            show_progress=False,
+            sbx_mode="legacy_lower",
         )
         for task in old:
             np.testing.assert_array_equal(new[task], old[task])

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "iris-generativa-natgenai"
-version = "2.3.0"
+version = "2.3.1"
 description = "Experimento Iris Generativa com Computação Evolutiva e NatGenAI."
 readme = "README.md"
 requires-python = ">=3.11"

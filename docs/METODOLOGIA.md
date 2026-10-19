@@ -1,4 +1,4 @@
-# Metodologias e decisões da iteração 2.3
+# Metodologias e decisões da iteração 2.3.1
 
 Referência principal: [Evolutionary Computation as Natural Generative AI](https://arxiv.org/html/2510.08590v1), especialmente a discussão de moderação e os experimentos artificiais das seções VI-A/VI-B. A tradução fornecida pelo projeto foi utilizada como apoio de leitura.
 
@@ -11,7 +11,7 @@ Referência principal: [Evolutionary Computation as Natural Generative AI](https
 | Mistura gaussiana | Média/covariância por tarefa e amostragem de mistura | Não usa EM nem escolhe automaticamente o número de componentes. |
 | Mistura + produto | Componentes individuais e produtos gaussianos normalizados | Pares por padrão; produto de todas as tarefas opcional. |
 | Cenários 2D | Anel/espiral e Gaussianas anisotrópicas | Geometria é reconstrução ilustrativa. Parâmetros de origem gaussianos seguem o artigo; modelos são estimados nos pais amostrados. |
-| OB-Scan-KDE e híbrido | Operadores anteriores preservados | São discutidos no artigo; não são apresentados como invenção original do projeto. |
+| OB-Scan-KDE e híbrido | OB-Scan preservado; ramo SBX corrigido na revisão 2.3.1 | São discutidos no artigo; não são apresentados como invenção original do projeto. |
 | Iris e avaliações | Fitness P/N/C, nichos KMeans e testes discriminativos | Adaptações do projeto; não equivalem às avaliações físicas e semânticas 3D. |
 
 ## Gaussianas
@@ -45,3 +45,15 @@ O controle `global` classifica todos os candidatos por fitness na tarefa atribu�
 Mesmas seeds e gerações tornam o protocolo pareado, mas não igualam custo computacional. Tempo e número de avaliações de fitness são registrados; treinamento do VAE acrescenta custo que não aparece nessa contagem. Os benchmarks de amostragem não são uma busca evolutiva completa e usam limites diferentes: crossovers têm caixa derivada dos pais, enquanto Gaussianas/VAE não são truncados no laboratório 2D. Na Iris todos os geradores novos são limitados à caixa do contexto.
 
 Cross-fitting refaz padronização, calibração e modelos usando exclusivamente o treinamento externo. O discriminador interno usa somente reais reservados e sintéticos gerados daquele treinamento. O escore mede distinguibilidade nesse protocolo; não comprova equivalência das distribuições. A fração de pontos fora do casco convexo é descritiva, não evidência suficiente de criatividade ou generalização OOD.
+
+## Correção e observabilidade na revisão 2.3.1
+
+O SBX nativo instalado do PyGAD 3.7.0 ordenava os pais por gene e retornava sempre o ramo inferior. Inverter os pais ou pedir dois descendentes não corrigia esse comportamento. A implementação local mantém sua fórmula de espalhamento limitado, passa a sortear cada ramo com probabilidade 0,5 por gene e usa os limites de cada atributo do contexto. Isso altera metodologicamente SBX e híbrido. `legacy_lower` preserva o comportamento anterior para auditoria; não deve ser selecionado por apresentar um escore discriminativo menor.
+
+Os diagnósticos dos EDAs medem separadamente pais selecionados, candidatos crus, candidatos após clipping e sobreviventes. Diversidade é calculada **dentro de cada tarefa** e dividida pela diversidade real da mesma tarefa; a diversidade global poderia mascarar concentração pela distância entre espécies. `founder_fraction` acompanha os indivíduos da inicialização ainda presentes, sem confundi-los com filhos produzidos pelo modelo.
+
+No VAE, uma sonda usa latentes fixos e RNG independente para medir variância da saída ao variar z, efeito da condição mantendo z e KL do encoder nos pais selecionados. Uma unidade é ativa se a variância de sua média posterior entre pais excede 0,01. Esse limiar é diagnóstico e não modifica treinamento. KL pequeno isoladamente não prova colapso; deve ser lido com resposta do decoder e diversidade dos candidatos. A sonda atual é adequada à arquitetura sem dropout/batch normalization.
+
+Os cálculos diagnósticos não entram no contador de avaliações da busca, mas seu custo entra no tempo de execução. Comparar tempos exige a mesma flag `RECORD_DIAGNOSTICS`. Desligá-la não altera populações nem perdas, como verificado pelo teste de neutralidade. Nessa opção, tabelas diagnósticas e amostras da última geração ficam vazias.
+
+As quatro variantes exploratórias do VAE alteram uma opção por vez: referência; β=0,1; latente=8; fração parental=1,0. Foram usadas três sementes, com 40 gerações e 30 épocas por ajuste. Elas não constituem busca exaustiva nem validação externa de um novo default. Os padrões β=1, latente=32 e fração parental=0,5 permanecem. Ver resultados em [REVISAO_METODOLOGICA.md](REVISAO_METODOLOGICA.md).

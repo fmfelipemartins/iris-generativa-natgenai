@@ -1,4 +1,19 @@
-# Validação da iteração 2.3 — 19/10/2026
+# Validação da revisão 2.3.1 — 19/10/2026
+
+A execução `full` enviada pelo usuário foi preservada sem alterações em `results/baseline_full_20261019`. A revisão atual corrige SBX e acrescenta diagnósticos neutros ao VAE. O relatório e os números consolidados estão em [docs/REVISAO_METODOLOGICA.md](docs/REVISAO_METODOLOGICA.md).
+
+- **15 testes aprovados**: os 12 anteriores, com regressão histórica explicitamente em modo SBX legado, e três novos testes de simetria, limites/reprodutibilidade e neutralidade dos diagnósticos VAE.
+- **11 células de código do notebook executadas sem erros**, em perfil `quick`, no mesmo processo IPython, com tabelas/figuras e exportação CSV. A restrição anterior ao kernel TCP mantém essa validação distinta de uma sessão Jupyter interativa.
+- Protocolos `full` afetados reexecutados: 80 avaliações pareadas SBX/híbrido; 12 execuções VAE (quatro variantes × três seeds), avaliando candidatos e sobreviventes separadamente; dez combinações condição/fold no cross-fitting; cinco casos de sensibilidade; duas políticas Iris; laboratório polinomial; 12 combinações cenário/método 2D; três trajetórias de seleção 2D com 20 gerações.
+- `ruff check --select F` e `git diff --check` aprovados. Figuras 2D e pipeline inspecionadas.
+
+A revisão foi executada em Linux/Python 3.12; a referência enviada veio do Windows/Python 3.14.7. Os ambientes não são tratados como intercambiáveis. A validação local da nova revisão em Windows ainda precisa ser repetida; não é necessário mudar de Python. O notebook principal contém saídas rápidas; os protocolos completos desta revisão estão em `results/review_full_20261019`.
+
+A correção do SBX é uma mudança metodológica e invalida a interpretação de suas saídas anteriores como SBX simétrico. O VAE continua apresentando concentração dos candidatos; a população final não deve ser interpretada como amostragem exclusiva do último modelo. Não foram alterados seus hiperparâmetros de referência.
+
+---
+
+# Histórico: validação inicial da iteração 2.3 — 19/10/2026
 
 A implementação foi validada no perfil **quick**. O protocolo científico completo (`full`) não foi executado nesta entrega; os resultados abaixo são verificações funcionais, não evidência de superioridade dos métodos.
 

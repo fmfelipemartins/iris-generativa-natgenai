@@ -8,7 +8,15 @@ from time import perf_counter
 import numpy as np
 import pandas as pd
 
-from .config import GENERATIONS, INITIAL_JITTER, POP_SIZE, RMP, SBX_ETA, TOURNAMENT_SIZE
+from .config import (
+    GENERATIONS,
+    INITIAL_JITTER,
+    POP_SIZE,
+    RMP,
+    SBX_ETA,
+    TOURNAMENT_SIZE,
+    SBX_MODE,
+)
 from .progress import progress
 from .fitness import generative_fitness
 from .operators import (
@@ -163,6 +171,7 @@ def run_generator(
     sbx_eta: float = SBX_ETA,
     show_progress: bool | None = None,
     selection_policy: str | None = None,
+    sbx_mode: str = SBX_MODE,
 ) -> tuple[dict[int, np.ndarray], pd.DataFrame]:
     """Executa uma condição gerativa por um número fixo de gerações."""
     if selection_policy is not None:
@@ -184,6 +193,10 @@ def run_generator(
         n_features=n_features,
         eta=sbx_eta,
     )
+
+    if sbx_mode not in {"symmetric", "legacy_lower"}:
+        raise ValueError("Modo SBX inválido.")
+    engine.iris_sbx_mode = sbx_mode
 
     history = []
 

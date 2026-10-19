@@ -15,6 +15,7 @@ from .evolution import (
 from .fitness import generative_fitness
 from .gaussian import GaussianGenerator
 from .progress import progress
+from .diagnostics import population_metrics
 
 
 ALL_CONDITIONS = {
@@ -36,6 +37,7 @@ def run_eda(
     refit_every=config.VAE_REFIT_EVERY,
     show_progress=None,
     model_options=None,
+    record_diagnostics=config.RECORD_DIAGNOSTICS,
 ):
     """Atualiza modelos nos melhores pais de cada tarefa e amostra uma nova geração."""
     if method not in config.GENERATIVE_METHODS or selection_policy not in {
@@ -56,6 +58,9 @@ def run_eda(
     populations = initialize_populations(ctx, pop_size, seed)
     options = dict(model_options or {})
     model, history, training, events = None, [], [], []
+    diagnostic_rows, latent_rows = [], []
+    birth_generations = {t: np.zeros(len(p), dtype=int) for t, p in populations.items()}
+    final_candidates = {}
     started = perf_counter()
     for generation in progress(range(1, generations + 1), method, show_progress):
         selected = {}
@@ -94,6 +99,10 @@ def run_eda(
                 regularization=config.GAUSSIAN_REG,
             )
             model = GaussianGenerator(method, **(defaults | options)).fit(selected)
+        if record_diagnostics and method == "vae_eda":
+            latent_rows.extend(
+                dict(generation=generation, **row) for row in model.diagnose(selected)
+            )
         next_populations = {}
         clipped_count, survivor_count = 0, 0
         for task in ctx["tasks"]:
@@ -114,6 +123,27 @@ def run_eda(
             )
             survivors = set(indices[indices >= pop_size] - pop_size)
             next_populations[task] = candidates[indices].copy()
+            births = np.r_[birth_generations[task], np.full(pop_size, generation)]
+            birth_generations[task] = births[indices]
+            if record_diagnostics:
+                for stage, stage_points in (
+                    ("selected_parents", selected[task]),
+                    ("raw_candidates", raw),
+                    ("clipped_candidates", offspring),
+                    ("survivors", next_populations[task]),
+                ):
+                    diagnostic_rows.append(
+                        dict(
+                            generation=generation,
+                            task=task,
+                            stage=stage,
+                            **population_metrics(stage_points, task, ctx),
+                        )
+                    )
+                if generation == generations:
+                    final_candidates[task] = dict(
+                        raw=raw.copy(), clipped=offspring.copy()
+                    )
             clipped_count += int(clipped.sum())
             survivor_count += len(survivors)
             for index, origin in enumerate(origins):
@@ -143,6 +173,9 @@ def run_eda(
                 generated_model=pop_size * len(populations),
                 survived_offspring=survivor_count,
                 clipped=clipped_count,
+                founder_fraction=float(
+                    np.mean(np.concatenate(list(birth_generations.values())) == 0)
+                ),
                 fitness_evaluations=ctx["_fitness_evaluations"],
                 elapsed_seconds=perf_counter() - started,
             )
@@ -150,6 +183,9 @@ def run_eda(
     table = pd.DataFrame(history)
     table.attrs["training_history"] = pd.DataFrame(training)
     table.attrs["offspring_events"] = pd.DataFrame(events)
+    table.attrs["diagnostics"] = pd.DataFrame(diagnostic_rows)
+    table.attrs["latent_diagnostics"] = pd.DataFrame(latent_rows)
+    table.attrs["final_candidates"] = final_candidates
     return populations, table
 
 
@@ -173,6 +209,9 @@ def run_condition(context, seed, condition, **options):
         synthetic_species=species,
         training_history=history.attrs.get("training_history", pd.DataFrame()),
         offspring_events=history.attrs.get("offspring_events", pd.DataFrame()),
+        diagnostics=history.attrs.get("diagnostics", pd.DataFrame()),
+        latent_diagnostics=history.attrs.get("latent_diagnostics", pd.DataFrame()),
+        final_candidates=history.attrs.get("final_candidates", {}),
         metadata=dict(
             seed=seed,
             condition=condition,

@@ -1,6 +1,6 @@
 # Iris Generativa com NatGenAI
 
-Experimento de geração de dados sintéticos inspirado em [Evolutionary Computation as Natural Generative AI](https://arxiv.org/html/2510.08590v1). A versão 2.3 compara seis condições, mantendo 50 registros por espécie da Iris: **SBX, OB-Scan-KDE, híbrido probabilístico, mistura gaussiana, mistura com produtos gaussianos e VAE-EDA condicional**.
+Experimento de geração de dados sintéticos inspirado em [Evolutionary Computation as Natural Generative AI](https://arxiv.org/html/2510.08590v1). A versão 2.3.1 compara seis condições, mantendo 50 registros por espécie da Iris: **SBX, OB-Scan-KDE, híbrido probabilístico, mistura gaussiana, mistura com produtos gaussianos e VAE-EDA condicional**.
 
 O notebook principal é [`notebooks/Iris_Generativa_NatGenAI.ipynb`](notebooks/Iris_Generativa_NatGenAI.ipynb). Ele contém a explicação dos métodos, a pipeline e resultados do perfil rápido. As diferenças entre artigo e implementação estão em [docs/METODOLOGIA.md](docs/METODOLOGIA.md).
 
@@ -36,7 +36,7 @@ Em `iris_generativa/config.py`, cada hiperparâmetro tem comentário explicativo
 
 O cross-fitting mantém cinco folds externos e três internos nos dois perfis. A população principal permanece em 150 indivíduos; no cross-fitting, são 30 sintéticos por fold. `RUN_*` permite desligar laboratórios individualmente. `SHOW_PROGRESS=False` oculta barras sem alterar os resultados.
 
-**O perfil rápido verifica funcionamento e não estabelece superioridade entre métodos.** O protocolo completo está implementado, mas não foi executado nesta entrega.
+**O perfil rápido verifica funcionamento e não estabelece superioridade entre métodos.** A execução `full` enviada pelo usuário está preservada em `results/baseline_full_20261019`. A revisão 2.3.1 corrige a assimetria do SBX e reavalia os protocolos afetados em orçamento completo; resultados e limites estão em [docs/REVISAO_METODOLOGICA.md](docs/REVISAO_METODOLOGICA.md).
 
 ## Pipeline
 
@@ -57,7 +57,7 @@ O fitness permanece `0,50 P + 0,25 N + 0,25 C`. A novidade favorece uma distânc
 |---|---|
 | `config.py` | Hiperparâmetros, perfis e flags comentados |
 | `data.py`, `fitness.py` | Dados, calibração e fitness por tarefa |
-| `operators.py`, `evolution.py` | Operadores anteriores e seleção de sobreviventes |
+| `operators.py`, `evolution.py` | SBX simétrico, modo legado de auditoria, OB-Scan e sobrevivência |
 | `gaussian.py` | Gaussianas por tarefa, misturas e produtos normalizados |
 | `vae.py` | VAE condicional, treinamento e amostragem com RNG privado |
 | `generative.py` | Interface comum e ciclo EDA |
@@ -66,9 +66,13 @@ O fitness permanece `0,50 P + 0,25 N + 0,25 C`. A novidade favorece uma distânc
 | `extended_experiments.py` | Seis condições, robustez, sensibilidade e cross-fitting |
 | `experiments.py` | API anterior preservada, agora com barras de progresso |
 | `progress.py` | Exibição de progresso com tqdm |
+| `diagnostics.py`, `artifacts.py` | Diagnósticos por estágio e exportação de execuções |
+| `scripts/review_experiments.py` | Auditoria SBX e comparações controladas da revisão |
 | `tests/test_iteration.py` | Regressão, referências analíticas e isolamento |
 
-As saídas incluem histórico de fitness, avaliações de fitness e tempo de geração. Novos geradores também registram componente de origem, clipping e sobrevivência dos candidatos; o VAE registra perdas por época. Os resultados da suíte guardam perfil, configuração, seeds e versões.
+As saídas incluem histórico de fitness, avaliações de fitness e tempo de geração. Novos geradores também registram componente de origem, clipping e sobrevivência dos candidatos; o VAE registra perdas por época. Os resultados da suíte guardam perfil, configuração, seeds e versões. A última célula exporta tabelas CSV, amostras e diagnósticos em uma pasta exclusiva `results/execution_<perfil>_<data>`. Essas exportações locais são ignoradas pelo Git; referências selecionadas são versionadas separadamente.
+
+O SBX padrão agora sorteia os dois ramos por gene. `SBX_MODE="legacy_lower"` existe apenas para reproduzir o comportamento assimétrico anterior. A instrumentação do VAE separa candidatos e sobreviventes, acompanha fundadores, KL, unidades ativas e resposta do decoder. Nenhum hiperparâmetro de treinamento foi escolhido a partir do cross-fitting.
 
 ## Verificar
 
@@ -77,6 +81,6 @@ python -m pip install pytest
 python -m pytest -q
 ```
 
-O teste de regressão compara as três condições anteriores com o commit `ff2659f`; exige um clone com esse histórico Git. Os demais testes verificam os produtos gaussianos, reprodutibilidade, aprendizado do VAE, cotas, controles de seleção e exclusão dos dados reservados no cross-fitting.
+O teste de regressão compara as três condições anteriores, com SBX em modo `legacy_lower`, com o commit `ff2659f`; exige um clone com esse histórico Git. Os demais testes verificam os produtos gaussianos, reprodutibilidade, aprendizado do VAE, cotas, controles de seleção e exclusão dos dados reservados no cross-fitting.
 
 Consulte [VALIDACAO.md](VALIDACAO.md) para resultados e limitações desta entrega. O uso da Iris é experimental: fidelidade e baixa distinguibilidade não demonstram validade biológica, privacidade ou criatividade fora da distribuição.
