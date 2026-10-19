@@ -1,3 +1,34 @@
+# Validação da iteração 2.3 — 19/10/2026
+
+A implementação foi validada no perfil **quick**. O protocolo científico completo (`full`) não foi executado nesta entrega; os resultados abaixo são verificações funcionais, não evidência de superioridade dos métodos.
+
+## Verificações executadas
+
+- `python -m pytest -q`: **12 testes aprovados**. Cobertura: produto gaussiano analítico e amostragem; covariâncias degeneradas; componentes por pares/triplo; regressão exata dos três operadores anteriores contra `ff2659f`; reprodutibilidade, cotas e limites dos três novos geradores; aprendizado do VAE e preservação do RNG global Torch; invariância ao progresso; controle global/por tarefa/nichos; cenários 2D; ausência dos reais reservados no ajuste do cross-fitting.
+- `python -m ruff check iris_generativa tests --select F`: aprovado.
+- `git diff --check`: aprovado.
+- **Nove células de código do notebook executadas sequencialmente, sem erros**, em um único processo IPython, com captura das tabelas e figuras. O lançamento de kernel TCP pelo nbclient foi bloqueado pelo ambiente; a execução sequencial no processo permitiu verificar todas as células e salvar as saídas. Não foi validada uma sessão interativa de Jupyter neste ambiente.
+- Notebook: seis condições principais, 12 execuções de robustez (duas seeds × seis condições), cinco casos de sensibilidade, duas políticas de seleção Iris, laboratório polinomial, 12 combinações cenário/método 2D, nove pontos de trajetória e 27 decisões contrafactuais, 30 execuções de cross-fitting (cinco folds × seis condições).
+- Todas as condições principais produziram matrizes finitas de 150 × 4, com 50 registros por espécie e zero duplicações exatas dos reais. As figuras e a pipeline foram inspecionadas.
+
+## Ambiente utilizado
+
+Python 3.12.14; NumPy 2.3.5; pandas 2.2.3; Matplotlib 3.10.8; scikit-learn 1.8.0; SciPy 1.17.0; PyGAD 3.7.0; PyTorch 2.14.1; tqdm 4.70.1. O VAE utilizou CPU. As versões estão fixadas em `requirements-validation.txt`. A pilha original de dependências foi mantida em `requirements.txt` e não foi integralmente reinstalada nesta validação.
+
+## Observações funcionais do perfil rápido
+
+No cenário 2D de seleção, a política global terminou com 62/18 indivíduos por tarefa, enquanto as políticas por tarefa e por tarefa com nichos mantiveram 40/40. Isso demonstra que o controle implementado permite perda de representação e que as cotas a evitam neste cenário.
+
+O VAE reduziu a perda de reconstrução ao longo das nove épocas totais da execução Iris rápida, mas somente sete de seus 150 candidatos da última geração sobreviveram. A população final ainda contém muitos indivíduos provenientes da inicialização ou de gerações anteriores. Portanto, uma baixa distinguibilidade dessa população não pode ser atribuída isoladamente à qualidade do VAE. No cenário 2D, o orçamento reduzido também produz amostras concentradas; convergência e diversidade exigem o protocolo completo e análise própria.
+
+Os escores e tempos desta execução estão nas saídas do notebook. Tempos dependem do ambiente e as comparações entre métodos não igualam orçamento de treinamento. A política global, a geometria anel/espiral e a adaptação para três espécies são controles e adaptações documentados em `docs/METODOLOGIA.md`.
+
+---
+
+# Histórico da validação anterior (2.2)
+
+O conteúdo abaixo pertence à versão anterior e não representa resultados dos três novos geradores nem da execução rápida desta iteração.
+
 # Validação do projeto Iris Generativa com NatGenAI
 
 ## 1. Objetivo da validação

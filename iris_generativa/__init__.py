@@ -1,6 +1,7 @@
 """Iris Generativa com NatGenAI."""
 
 from .data import load_iris_data, prepare_context
+from .generative import run_condition
 from .evolution import run_generator
 from .evaluation import evaluate_discriminators
 from .experiments import (
@@ -19,6 +20,7 @@ __all__ = [
     "prepare_context",
     "robustness_experiment",
     "run_generator",
+    "run_condition",
     "run_main_experiment",
     "sensitivity_experiment",
 ]

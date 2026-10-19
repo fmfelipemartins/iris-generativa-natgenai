@@ -1,281 +1,72 @@
 # Iris Generativa com NatGenAI
 
-Experimento didático e de pesquisa sobre geração de dados sintéticos por Computação Evolutiva, utilizando a base **Iris** como problema controlado para estudo de operadores evolutivos, fidelidade estatística, diversidade e distinguibilidade entre dados reais e sintéticos.
+Experimento de geração de dados sintéticos inspirado em [Evolutionary Computation as Natural Generative AI](https://arxiv.org/html/2510.08590v1). A versão 2.3 compara seis condições, mantendo 50 registros por espécie da Iris: **SBX, OB-Scan-KDE, híbrido probabilístico, mistura gaussiana, mistura com produtos gaussianos e VAE-EDA condicional**.
 
-O projeto foi estruturado como um pequeno pacote Python para separar a implementação do algoritmo da narrativa experimental apresentada no notebook principal.
+O notebook principal é [`notebooks/Iris_Generativa_NatGenAI.ipynb`](notebooks/Iris_Generativa_NatGenAI.ipynb). Ele contém a explicação dos métodos, a pipeline e resultados do perfil rápido. As diferenças entre artigo e implementação estão em [docs/METODOLOGIA.md](docs/METODOLOGIA.md).
 
-## Objetivo
+## Executar
 
-O experimento parte dos 150 registros reais da base Iris e gera 150 registros sintéticos, preservando a estrutura das três espécies:
-
-- *Iris setosa*;
-- *Iris versicolor*;
-- *Iris virginica*.
-
-A qualidade dos dados sintéticos é analisada por diferentes perspectivas, incluindo:
-
-- plausibilidade;
-- novidade;
-- coerência com a espécie;
-- diversidade;
-- fidelidade marginal;
-- duplicação exata;
-- distinguibilidade entre dados reais e sintéticos.
-
-Como teste discriminativo, os dados são reunidos em uma base com:
-
-- `1 = real`;
-- `0 = sintético`.
-
-São avaliados classificadores lineares e não lineares para verificar em que medida a origem dos registros ainda pode ser identificada.
-
-## Fundamentação experimental
-
-O projeto investiga conceitos discutidos no trabalho **Evolutionary Computation as Natural Generative AI**, explorando Computação Evolutiva como mecanismo de geração de novas amostras.
-
-Três condições principais são comparadas:
-
-1. **SBX** — recombinação probabilística centrada nos pais;
-2. **OB-Scan** — recombinação disruptiva baseada em densidade estimada por KDE;
-3. **Híbrido 50/50** — combinação de SBX e OB-Scan.
-
-A base Iris é tratada como um problema multitarefa, em que cada espécie corresponde a uma tarefa.
-
-O fitness generativo é definido por:
-
-$$
-F(x)=0{,}50P(x)+0{,}25N(x)+0{,}25C(x)
-$$
-
-em que:
-
-- `P(x)` representa plausibilidade;
-- `N(x)` representa novidade;
-- `C(x)` representa coerência com a tarefa/espécie.
-
-## Estrutura do projeto
-
-```text
-iris-generativa-natgenai/
-├── iris_generativa/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── data.py
-│   ├── evaluation.py
-│   ├── evolution.py
-│   ├── experiments.py
-│   ├── fitness.py
-│   └── operators.py
-│
-├── notebooks/
-│   └── Iris_Generativa_NatGenAI.ipynb
-│
-├── pyproject.toml
-├── README.md
-├── requirements.txt
-└── VALIDACAO.md
+```bash
+python -m venv .venv
+# Linux/macOS: source .venv/bin/activate
+# Windows: .venv\Scripts\activate
+python -m pip install -r requirements.txt
+python -m pip install -e . --no-deps
+jupyter notebook notebooks/Iris_Generativa_NatGenAI.ipynb
 ```
 
-### Responsabilidades dos módulos
+Os pins anteriores do projeto foram preservados em `requirements.txt`; foram acrescentados PyTorch e tqdm. O ambiente efetivamente utilizado nesta validação está em `requirements-validation.txt`. Para reproduzir esse ambiente, use esse arquivo no lugar de `requirements.txt`. PyTorch é usado em CPU; não há exigência de GPU.
+
+Em `iris_generativa/config.py`, cada hiperparâmetro tem comentário explicativo. Configure antes de importar o pacote e reinicie o kernel após mudanças:
+
+| Perfil | Gerações Iris | Épocas VAE por ajuste | Seeds de robustez | CV discriminativa | Árvores RF |
+|---|---:|---:|---:|---|---:|
+| `quick` (padrão) | 3 | 3 | 2 | 2 folds × 1 repetição | 32 |
+| `full` | 40 | 30 | 20 | 5 folds × 5 repetições | 300 |
+
+O cross-fitting mantém cinco folds externos e três internos nos dois perfis. A população principal permanece em 150 indivíduos; no cross-fitting, são 30 sintéticos por fold. `RUN_*` permite desligar laboratórios individualmente. `SHOW_PROGRESS=False` oculta barras sem alterar os resultados.
+
+**O perfil rápido verifica funcionamento e não estabelece superioridade entre métodos.** O protocolo completo está implementado, mas não foi executado nesta entrega.
+
+## Pipeline
+
+![Pipeline atualizada](docs/pipeline.svg)
+
+1. Carregar dados, padronizar, calibrar fitness e formar cinco nichos por tarefa.
+2. Gerar candidatos por crossover ou ajustar um modelo aos pais selecionados e amostrar.
+3. Selecionar sobreviventes por tarefa, opcionalmente preservando nichos; repetir gerações.
+4. Medir duplicação, coerência, novidade, diversidade, fidelidade marginal e distinguibilidade.
+5. Comparar seeds, sensibilidade, políticas de seleção e cenários artificiais 2D.
+6. Repetir o ajuste dentro de folds com reais reservados para avaliação.
+
+O fitness permanece `0,50 P + 0,25 N + 0,25 C`. A novidade favorece uma distância-alvo ao real mais próximo; não cresce indefinidamente com a distância. O híbrido sorteia o operador por descendente, sem cota exata de 50/50. Nichos dinâmicos permanecem fora desta iteração.
+
+## Implementação
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `config.py` | Hiperparâmetros, seeds e controles de execução |
-| `data.py` | Carregamento da Iris, padronização, calibração e contexto evolutivo |
-| `fitness.py` | Plausibilidade, novidade, coerência e fitness generativo |
-| `operators.py` | SBX, OB-Scan-KDE e suporte aos operadores evolutivos |
-| `evolution.py` | Inicialização populacional, seleção de pais, RMP, seleção moderada e ciclo evolutivo |
-| `evaluation.py` | Métricas generativas, fidelidade estatística e classificadores Real × Sintético |
-| `experiments.py` | Experimento principal, robustez, sensibilidade, mutação polinomial e cross-fitting |
-| `notebooks/` | Narrativa experimental, execução, tabelas, gráficos e interpretação |
+| `config.py` | Hiperparâmetros, perfis e flags comentados |
+| `data.py`, `fitness.py` | Dados, calibração e fitness por tarefa |
+| `operators.py`, `evolution.py` | Operadores anteriores e seleção de sobreviventes |
+| `gaussian.py` | Gaussianas por tarefa, misturas e produtos normalizados |
+| `vae.py` | VAE condicional, treinamento e amostragem com RNG privado |
+| `generative.py` | Interface comum e ciclo EDA |
+| `benchmarks.py` | Cenários 2D, figuras e controle contrafactual da seleção |
+| `evaluation.py` | Métricas e discriminadores |
+| `extended_experiments.py` | Seis condições, robustez, sensibilidade e cross-fitting |
+| `experiments.py` | API anterior preservada, agora com barras de progresso |
+| `progress.py` | Exibição de progresso com tqdm |
+| `tests/test_iteration.py` | Regressão, referências analíticas e isolamento |
 
-## Requisitos
+As saídas incluem histórico de fitness, avaliações de fitness e tempo de geração. Novos geradores também registram componente de origem, clipping e sobrevivência dos candidatos; o VAE registra perdas por época. Os resultados da suíte guardam perfil, configuração, seeds e versões.
 
-O projeto requer **Python 3.11 ou superior**.
+## Verificar
 
-As principais dependências são:
-
-- NumPy;
-- pandas;
-- Matplotlib;
-- SciPy;
-- scikit-learn;
-- PyGAD;
-- Jupyter;
-- ipykernel.
-
-As versões utilizadas no ambiente experimental estão registradas em `requirements.txt` e `pyproject.toml`.
-
-## Instalação
-
-### Windows + PowerShell
-
-Na pasta raiz do projeto:
-
-```powershell
-python -m venv .venv
+```bash
+python -m pip install pytest
+python -m pytest -q
 ```
 
-Ative o ambiente virtual:
+O teste de regressão compara as três condições anteriores com o commit `ff2659f`; exige um clone com esse histórico Git. Os demais testes verificam os produtos gaussianos, reprodutibilidade, aprendizado do VAE, cotas, controles de seleção e exclusão dos dados reservados no cross-fitting.
 
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Atualize o `pip`:
-
-```powershell
-python -m pip install --upgrade pip
-```
-
-Instale as dependências:
-
-```powershell
-python -m pip install -r requirements.txt
-```
-
-Instale o pacote local em modo editável:
-
-```powershell
-python -m pip install -e . --no-deps
-```
-
-Teste a instalação:
-
-```powershell
-python -c "import iris_generativa; print('Pacote instalado corretamente')"
-```
-
-O modo editável (`-e`) permite modificar os módulos em `iris_generativa/` sem reinstalar o pacote após cada alteração.
-
-## Execução
-
-Abra a pasta raiz do projeto no VS Code e, em seguida, abra:
-
-```text
-notebooks/Iris_Generativa_NatGenAI.ipynb
-```
-
-Selecione como kernel o Python do ambiente `.venv`.
-
-Para uma execução limpa e reprodutível:
-
-1. reinicie o kernel;
-2. execute **Run All**;
-3. aguarde a conclusão de todas as células;
-4. salve o notebook.
-
-## Experimentos
-
-Além da comparação principal entre SBX, OB-Scan e a condição híbrida, o projeto inclui experimentos complementares.
-
-### Robustez
-
-Repete as condições principais em múltiplas seeds para avaliar estabilidade dos resultados.
-
-### Sensibilidade do SBX
-
-Avalia diferentes valores do parâmetro $\eta$, responsável pela concentração dos descendentes em torno dos pais.
-
-As configurações estudadas incluem:
-
-- $\eta = 5$;
-- $\eta = 30$;
-- $\eta = 50$.
-
-### Random Mating Probability — RMP
-
-Compara configurações com e sem transferência intertarefas, permitindo avaliar o efeito do cruzamento entre indivíduos associados a espécies diferentes.
-
-### Seleção moderada
-
-Avalia o efeito da preservação de nichos sobre diversidade populacional e distinguibilidade dos sintéticos.
-
-### SBX + Polynomial Mutation
-
-Experimenta a combinação entre SBX e mutação polinomial separadamente da comparação principal, evitando introduzir esse fator como confundidor no experimento SBX × OB-Scan.
-
-### Cross-fitting
-
-O protocolo cross-fitted separa os dados reais utilizados como referência pelo gerador daqueles utilizados posteriormente na avaliação.
-
-Assim, os sintéticos são comparados com registros reais que não participaram de sua geração, fornecendo uma avaliação mais rigorosa de generalização.
-
-## Métricas
-
-O projeto utiliza diferentes métricas porque nenhuma medida isolada é suficiente para avaliar um gerador sintético.
-
-Entre elas:
-
-- número de duplicatas exatas;
-- coerência por espécie;
-- novidade média;
-- diversidade;
-- razão entre diversidade sintética e real;
-- distância de Wasserstein;
-- estatística de Kolmogorov-Smirnov;
-- acurácia de Regressão Logística;
-- acurácia de Random Forest;
-- ROC-AUC;
-- validação cruzada;
-- avaliação cross-fitted.
-
-A interpretação deve considerar conjuntamente:
-
-$$
-\text{fidelidade}
-+
-\text{novidade}
-+
-\text{diversidade}
-+
-\text{coerência}
-$$
-
-Baixa distinguibilidade Real × Sintético, isoladamente, não é suficiente para caracterizar um bom gerador, pois memorizar ou copiar registros reais também poderia reduzir a capacidade de discriminação.
-
-## Reprodutibilidade
-
-As seeds e os principais hiperparâmetros estão centralizados em:
-
-```text
-iris_generativa/config.py
-```
-
-A separação entre configuração, implementação e notebook busca facilitar:
-
-- repetição dos experimentos;
-- comparação entre condições;
-- auditoria dos hiperparâmetros;
-- extensão futura do projeto;
-- reutilização dos módulos em outras bases.
-
-## Organização para pesquisa
-
-O notebook principal contém prioritariamente:
-
-- contexto e perguntas experimentais;
-- configuração;
-- execução;
-- tabelas;
-- gráficos;
-- interpretação.
-
-A implementação de baixo nível permanece nos módulos Python do pacote `iris_generativa`.
-
-Essa separação permite que o notebook funcione como documento de pesquisa, enquanto o pacote concentra a implementação reutilizável.
-
-## Estado do projeto
-
-O projeto encontra-se em desenvolvimento e utiliza a base Iris como ambiente controlado para estudo metodológico.
-
-Mudanças futuras em fitness, operadores, seleção, hiperparâmetros, avaliação ou protocolo experimental devem ser tratadas como alterações metodológicas e documentadas separadamente de refatorações estruturais.
-
-## Referências principais
-
-- Shi, Y. et al. **Evolutionary Computation as Natural Generative AI**. arXiv:2510.08590.
-- PyGAD — documentação oficial.
-
-## Licença
-
-Ainda não foi definida uma licença para o repositório.
+Consulte [VALIDACAO.md](VALIDACAO.md) para resultados e limitações desta entrega. O uso da Iris é experimental: fidelidade e baixa distinguibilidade não demonstram validade biológica, privacidade ou criatividade fora da distribuição.
