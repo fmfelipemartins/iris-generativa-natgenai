@@ -21,10 +21,7 @@ def mean_k_distance(
 def coherence_score(point: np.ndarray, target_task: int, ctx: dict) -> float:
     """Estima a compatibilidade local do indivíduo com a tarefa atribuída."""
     local_distances = np.array(
-        [
-            mean_k_distance(point, ctx["real_by_task"][task])
-            for task in ctx["tasks"]
-        ],
+        [mean_k_distance(point, ctx["real_by_task"][task]) for task in ctx["tasks"]],
         dtype=float,
     )
     temperature = max(
@@ -44,25 +41,20 @@ def generative_fitness(
     ctx: dict,
 ) -> tuple[float, float, float, float]:
     """Combina plausibilidade, novidade e coerência."""
+    if "_fitness_evaluations" in ctx:
+        ctx["_fitness_evaluations"] += 1
     reference = ctx["real_by_task"][task]
 
-    nearest_distance = float(
-        np.linalg.norm(reference - point, axis=1).min()
-    )
+    nearest_distance = float(np.linalg.norm(reference - point, axis=1).min())
     local_distance = mean_k_distance(point, reference)
 
     plausibility_scale = ctx["plausibility_scales"][task]
-    plausibility = float(
-        np.exp(-0.5 * (local_distance / plausibility_scale) ** 2)
-    )
+    plausibility = float(np.exp(-0.5 * (local_distance / plausibility_scale) ** 2))
 
     novelty_target = ctx["novelty_targets"][task]
     novelty_sigma = ctx["novelty_sigmas"][task]
     novelty = float(
-        np.exp(
-            -0.5
-            * ((nearest_distance - novelty_target) / novelty_sigma) ** 2
-        )
+        np.exp(-0.5 * ((nearest_distance - novelty_target) / novelty_sigma) ** 2)
     )
 
     coherence = coherence_score(point, task, ctx)

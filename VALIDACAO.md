@@ -1,3 +1,49 @@
+# Validação da revisão 2.3.1 — 19/10/2026
+
+A execução `full` enviada pelo usuário foi preservada sem alterações em `results/baseline_full_20261019`. A revisão atual corrige SBX e acrescenta diagnósticos neutros ao VAE. O relatório e os números consolidados estão em [docs/REVISAO_METODOLOGICA.md](docs/REVISAO_METODOLOGICA.md).
+
+- **15 testes aprovados**: os 12 anteriores, com regressão histórica explicitamente em modo SBX legado, e três novos testes de simetria, limites/reprodutibilidade e neutralidade dos diagnósticos VAE.
+- **11 células de código do notebook executadas sem erros**, em perfil `quick`, no mesmo processo IPython, com tabelas/figuras e exportação CSV. A restrição anterior ao kernel TCP mantém essa validação distinta de uma sessão Jupyter interativa.
+- Protocolos `full` afetados reexecutados: 80 avaliações pareadas SBX/híbrido; 12 execuções VAE (quatro variantes × três seeds), avaliando candidatos e sobreviventes separadamente; dez combinações condição/fold no cross-fitting; cinco casos de sensibilidade; duas políticas Iris; laboratório polinomial; 12 combinações cenário/método 2D; três trajetórias de seleção 2D com 20 gerações.
+- `ruff check --select F` e `git diff --check` aprovados. Figuras 2D e pipeline inspecionadas.
+
+A revisão foi executada em Linux/Python 3.12; a referência enviada veio do Windows/Python 3.14.7. Os ambientes não são tratados como intercambiáveis. A validação local da nova revisão em Windows ainda precisa ser repetida; não é necessário mudar de Python. O notebook principal contém saídas rápidas; os protocolos completos desta revisão estão em `results/review_full_20261019`.
+
+A correção do SBX é uma mudança metodológica e invalida a interpretação de suas saídas anteriores como SBX simétrico. O VAE continua apresentando concentração dos candidatos; a população final não deve ser interpretada como amostragem exclusiva do último modelo. Não foram alterados seus hiperparâmetros de referência.
+
+---
+
+# Histórico: validação inicial da iteração 2.3 — 19/10/2026
+
+A implementação foi validada no perfil **quick**. O protocolo científico completo (`full`) não foi executado nesta entrega; os resultados abaixo são verificações funcionais, não evidência de superioridade dos métodos.
+
+## Verificações executadas
+
+- `python -m pytest -q`: **12 testes aprovados**. Cobertura: produto gaussiano analítico e amostragem; covariâncias degeneradas; componentes por pares/triplo; regressão exata dos três operadores anteriores contra `ff2659f`; reprodutibilidade, cotas e limites dos três novos geradores; aprendizado do VAE e preservação do RNG global Torch; invariância ao progresso; controle global/por tarefa/nichos; cenários 2D; ausência dos reais reservados no ajuste do cross-fitting.
+- `python -m ruff check iris_generativa tests --select F`: aprovado.
+- `git diff --check`: aprovado.
+- **Nove células de código do notebook executadas sequencialmente, sem erros**, em um único processo IPython, com captura das tabelas e figuras. O lançamento de kernel TCP pelo nbclient foi bloqueado pelo ambiente; a execução sequencial no processo permitiu verificar todas as células e salvar as saídas. Não foi validada uma sessão interativa de Jupyter neste ambiente.
+- Notebook: seis condições principais, 12 execuções de robustez (duas seeds × seis condições), cinco casos de sensibilidade, duas políticas de seleção Iris, laboratório polinomial, 12 combinações cenário/método 2D, nove pontos de trajetória e 27 decisões contrafactuais, 30 execuções de cross-fitting (cinco folds × seis condições).
+- Todas as condições principais produziram matrizes finitas de 150 × 4, com 50 registros por espécie e zero duplicações exatas dos reais. As figuras e a pipeline foram inspecionadas.
+
+## Ambiente utilizado
+
+Python 3.12.14; NumPy 2.3.5; pandas 2.2.3; Matplotlib 3.10.8; scikit-learn 1.8.0; SciPy 1.17.0; PyGAD 3.7.0; PyTorch 2.14.1; tqdm 4.70.1. O VAE utilizou CPU. As versões desse ambiente estão registradas em `docs/environment-validation-py312.txt`. A pilha original de dependências foi mantida em `requirements.txt` e não foi integralmente reinstalada nesta validação.
+
+## Observações funcionais do perfil rápido
+
+No cenário 2D de seleção, a política global terminou com 62/18 indivíduos por tarefa, enquanto as políticas por tarefa e por tarefa com nichos mantiveram 40/40. Isso demonstra que o controle implementado permite perda de representação e que as cotas a evitam neste cenário.
+
+O VAE reduziu a perda de reconstrução ao longo das nove épocas totais da execução Iris rápida, mas somente sete de seus 150 candidatos da última geração sobreviveram. A população final ainda contém muitos indivíduos provenientes da inicialização ou de gerações anteriores. Portanto, uma baixa distinguibilidade dessa população não pode ser atribuída isoladamente à qualidade do VAE. No cenário 2D, o orçamento reduzido também produz amostras concentradas; convergência e diversidade exigem o protocolo completo e análise própria.
+
+Os escores e tempos desta execução estão nas saídas do notebook. Tempos dependem do ambiente e as comparações entre métodos não igualam orçamento de treinamento. A política global, a geometria anel/espiral e a adaptação para três espécies são controles e adaptações documentados em `docs/METODOLOGIA.md`.
+
+---
+
+# Histórico da validação anterior (2.2)
+
+O conteúdo abaixo pertence à versão anterior e não representa resultados dos três novos geradores nem da execução rápida desta iteração.
+
 # Validação do projeto Iris Generativa com NatGenAI
 
 ## 1. Objetivo da validação
@@ -310,3 +356,10 @@ A separação entre implementação e notebook permite que:
 - novos experimentos possam ser adicionados sem aumentar desnecessariamente a complexidade visual do notebook.
 
 Com a validação operacional concluída e os artefatos locais excluídos do versionamento, o projeto está estruturalmente preparado para ser publicado em um repositório Git.
+
+
+## Correção de instalação no Windows/Python 3.14
+
+O instalador de validação anterior fixava pandas 2.2.3, que levou o pip no computador do usuário a tentar compilar o pacote e falhar por falta das ferramentas Visual Studio. `requirements-validation.txt` agora referencia as dependências principais e acrescenta pytest. O registro histórico do ambiente Linux/Python 3.12 foi separado em `docs/environment-validation-py312.txt`. Isso corrige a divergência dos arquivos de instalação, sem alterar os algoritmos. A validação funcional em Windows/Python 3.14 depende da execução local.
+
+Foi realizada resolução sem instalação das 11 dependências diretas, exigindo wheels para CPython 3.14/Windows x86-64: todas foram encontradas. A resolução transitiva cruzada não foi concluída: o pip executado em Linux avaliou marcadores Linux do Torch apesar do alvo Windows. Portanto, essa checagem não equivale a instalação ou execução em Windows.

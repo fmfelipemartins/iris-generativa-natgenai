@@ -48,7 +48,38 @@ def pygad_sbx_child(
     engine: pygad.GA,
     ctx: dict,
 ) -> np.ndarray:
-    """Gera um descendente usando o SBX nativo do PyGAD."""
+    """SBX simétrico por gene; modo legado preserva o defeito do PyGAD 3.7.0.
+
+    O modo simétrico usa a distribuição limitada da versão 3.7.0,
+    sorteia os dois ramos com igual probabilidade e usa limites por gene.
+    """
+    mode = getattr(engine, "iris_sbx_mode", "symmetric")
+    if mode == "symmetric":
+        y1 = np.minimum(parent_a, parent_b).astype(float)
+        y2 = np.maximum(parent_a, parent_b).astype(float)
+        low, high = np.asarray(ctx["global_low"]), np.asarray(ctx["global_high"])
+        if np.any(y1 < low) or np.any(y2 > high):
+            raise ValueError("Pais SBX devem estar dentro dos limites por gene.")
+        eta = float(engine.sbx_crossover_eta)
+        child = y1.copy()
+        active = y2 - y1 >= 1e-14
+        gap = y2[active] - y1[active]
+        beta = (
+            1
+            + 2 * np.minimum(y1[active] - low[active], high[active] - y2[active]) / gap
+        )
+        alpha = 2 - beta ** (-(eta + 1))
+        u = np.random.random(int(active.sum()))
+        beta_q = np.where(
+            u <= 1 / alpha,
+            (u * alpha) ** (1 / (eta + 1)),
+            (1 / (2 - u * alpha)) ** (1 / (eta + 1)),
+        )
+        sign = np.where(np.random.random(int(active.sum())) < 0.5, -1.0, 1.0)
+        child[active] = 0.5 * (y1[active] + y2[active] + sign * beta_q * gap)
+        return np.clip(child, low, high)
+    if mode != "legacy_lower":
+        raise ValueError("Modo SBX desconhecido.")
     parents = np.vstack([parent_a, parent_b]).astype(float)
     child = np.asarray(
         engine.sbx_crossover(
@@ -63,9 +94,7 @@ def pygad_sbx_child(
 
 def fit_gene_kdes(populations: dict[int, np.ndarray]) -> list[KernelDensity]:
     """Ajusta uma KDE gaussiana por gene usando o pool populacional."""
-    unified = np.vstack(
-        [populations[task] for task in sorted(populations)]
-    )
+    unified = np.vstack([populations[task] for task in sorted(populations)])
     models = []
 
     for gene_idx in range(unified.shape[1]):

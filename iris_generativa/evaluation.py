@@ -11,6 +11,7 @@ from sklearn.model_selection import RepeatedStratifiedKFold, cross_validate
 from sklearn.neighbors import KNeighborsClassifier
 
 from .config import CV_SEED
+from .progress import progress
 
 
 SCORING = {
@@ -28,10 +29,7 @@ def exact_duplicate_count(
 ) -> int:
     """Conta sintéticos exatamente iguais a algum registro real."""
     return sum(
-        any(
-            np.array_equal(synthetic, real)
-            for real in real_x
-        )
+        any(np.array_equal(synthetic, real) for real in real_x)
         for synthetic in synthetic_x
     )
 
@@ -47,9 +45,7 @@ def species_coherence_accuracy(
     model.fit(real_x, real_species)
     predictions = model.predict(synthetic_x)
 
-    return float(
-        accuracy_score(synthetic_species, predictions)
-    )
+    return float(accuracy_score(synthetic_species, predictions))
 
 
 def mean_pairwise_diversity(points: np.ndarray) -> float:
@@ -58,9 +54,7 @@ def mean_pairwise_diversity(points: np.ndarray) -> float:
         return 0.0
 
     distances = pairwise_distances(points, points)
-    upper = distances[
-        np.triu_indices_from(distances, k=1)
-    ]
+    upper = distances[np.triu_indices_from(distances, k=1)]
 
     return float(upper.mean())
 
@@ -70,25 +64,17 @@ def ks_statistic_1d(
     sample_b: np.ndarray,
 ) -> float:
     """Calcula a estatística KS empírica em uma dimensão."""
-    values = np.sort(
-        np.unique(np.concatenate([sample_a, sample_b]))
-    )
-    cdf_a = (
-        np.searchsorted(
-            np.sort(sample_a),
-            values,
-            side="right",
-        )
-        / len(sample_a)
-    )
-    cdf_b = (
-        np.searchsorted(
-            np.sort(sample_b),
-            values,
-            side="right",
-        )
-        / len(sample_b)
-    )
+    values = np.sort(np.unique(np.concatenate([sample_a, sample_b])))
+    cdf_a = np.searchsorted(
+        np.sort(sample_a),
+        values,
+        side="right",
+    ) / len(sample_a)
+    cdf_b = np.searchsorted(
+        np.sort(sample_b),
+        values,
+        side="right",
+    ) / len(sample_b)
 
     return float(np.max(np.abs(cdf_a - cdf_b)))
 
@@ -99,17 +85,9 @@ def wasserstein_equal_1d(
 ) -> float:
     """Calcula Wasserstein-1 para amostras de mesmo tamanho."""
     if len(sample_a) != len(sample_b):
-        raise ValueError(
-            "As amostras devem ter o mesmo tamanho nesta implementação."
-        )
+        raise ValueError("As amostras devem ter o mesmo tamanho nesta implementação.")
 
-    return float(
-        np.mean(
-            np.abs(
-                np.sort(sample_a) - np.sort(sample_b)
-            )
-        )
-    )
+    return float(np.mean(np.abs(np.sort(sample_a) - np.sort(sample_b))))
 
 
 def evaluate_discriminators(
@@ -118,6 +96,11 @@ def evaluate_discriminators(
     synthetic_x: np.ndarray,
     synthetic_species: np.ndarray,
     cv_seed: int = CV_SEED,
+    n_splits: int = 5,
+    n_repeats: int = 5,
+    n_estimators: int = 300,
+    n_jobs: int = -1,
+    show_progress: bool = False,
 ) -> pd.DataFrame:
     """Avalia Regressão Logística e Random Forest em Real × Sintético."""
     x_combined = np.vstack([real_x, synthetic_x])
@@ -127,61 +110,52 @@ def evaluate_discriminators(
             np.zeros(len(synthetic_x), dtype=int),
         ]
     )
-    species_combined = np.concatenate(
-        [real_species, synthetic_species]
-    )
+    species_combined = np.concatenate([real_species, synthetic_species])
     strata = np.array(
         [
             f"{origin_label}_{species_label}"
-            for origin_label, species_label
-            in zip(origin, species_combined)
+            for origin_label, species_label in zip(origin, species_combined)
         ],
         dtype=str,
     )
 
     splitter = RepeatedStratifiedKFold(
-        n_splits=5,
-        n_repeats=5,
+        n_splits=n_splits,
+        n_repeats=n_repeats,
         random_state=cv_seed,
     )
     splits = list(splitter.split(x_combined, strata))
 
     models = {
-        "Regressão Logística": LogisticRegression(
-            max_iter=2000
-        ),
+        "Regressão Logística": LogisticRegression(max_iter=2000),
         "Random Forest": RandomForestClassifier(
-            n_estimators=300,
+            n_estimators=n_estimators,
             min_samples_leaf=3,
             random_state=cv_seed,
-            n_jobs=-1,
+            n_jobs=n_jobs,
         ),
     }
 
     rows = []
 
-    for model_name, model in models.items():
+    for model_name, model in progress(models.items(), "Discriminadores", show_progress):
         scores = cross_validate(
             model,
             x_combined,
             origin,
             cv=splits,
             scoring=SCORING,
-            n_jobs=-1,
+            n_jobs=n_jobs,
         )
         rows.append(
             {
                 "model": model_name,
                 **{
-                    f"{metric}_mean": float(
-                        scores[f"test_{metric}"].mean()
-                    )
+                    f"{metric}_mean": float(scores[f"test_{metric}"].mean())
                     for metric in SCORING
                 },
                 **{
-                    f"{metric}_std": float(
-                        scores[f"test_{metric}"].std()
-                    )
+                    f"{metric}_std": float(scores[f"test_{metric}"].std())
                     for metric in SCORING
                 },
             }
@@ -197,9 +171,7 @@ def summarize_generation(
     real_species: np.ndarray,
 ) -> tuple[pd.DataFrame, float]:
     """Resume cópia, coerência, novidade e diversidade por condição."""
-    real_diversity = mean_pairwise_diversity(
-        context["Z_real"]
-    )
+    real_diversity = mean_pairwise_diversity(context["Z_real"])
     rows = []
 
     for condition_name, result in main_runs.items():
@@ -211,9 +183,7 @@ def summarize_generation(
             synthetic_z,
             context["Z_real"],
         ).min(axis=1)
-        synthetic_diversity = mean_pairwise_diversity(
-            synthetic_z
-        )
+        synthetic_diversity = mean_pairwise_diversity(synthetic_z)
 
         rows.append(
             {
@@ -228,13 +198,9 @@ def summarize_generation(
                     real_x,
                     real_species,
                 ),
-                "novelty_mean": float(
-                    nearest_to_real.mean()
-                ),
+                "novelty_mean": float(nearest_to_real.mean()),
                 "diversity": synthetic_diversity,
-                "diversity_ratio": (
-                    synthetic_diversity / real_diversity
-                ),
+                "diversity_ratio": (synthetic_diversity / real_diversity),
             }
         )
 
@@ -258,9 +224,7 @@ def build_distribution_table(
     for condition_name, result in main_runs.items():
         for task in tasks:
             real_task = real_x[real_species == task]
-            synthetic_task = result["synthetic_x"][
-                result["synthetic_species"] == task
-            ]
+            synthetic_task = result["synthetic_x"][result["synthetic_species"] == task]
 
             for feature_idx, feature_name in enumerate(feature_names):
                 real_values = real_task[:, feature_idx]

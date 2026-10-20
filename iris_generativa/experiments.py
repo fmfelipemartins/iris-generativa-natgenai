@@ -15,6 +15,7 @@ from .config import (
     SEED,
 )
 from .data import prepare_context
+from .progress import progress
 from .evaluation import (
     evaluate_discriminators,
     exact_duplicate_count,
@@ -36,11 +37,9 @@ def run_main_experiment(
             seed=seed,
             p_sbx=p_sbx,
         )
-        synthetic_z, synthetic_x, synthetic_species = (
-            populations_to_synthetic(
-                populations,
-                context,
-            )
+        synthetic_z, synthetic_x, synthetic_species = populations_to_synthetic(
+            populations,
+            context,
         )
 
         main_runs[condition_name] = {
@@ -64,18 +63,16 @@ def robustness_experiment(
     """Repete as três condições nas mesmas vinte seeds."""
     rows = []
 
-    for seed in seeds:
+    for seed in progress(seeds, "Robustez: seeds"):
         for condition_name, p_sbx in MAIN_CONDITIONS.items():
             populations, _ = run_generator(
                 context,
                 seed=seed,
                 p_sbx=p_sbx,
             )
-            synthetic_z, synthetic_x, synthetic_species = (
-                populations_to_synthetic(
-                    populations,
-                    context,
-                )
+            synthetic_z, synthetic_x, synthetic_species = populations_to_synthetic(
+                populations,
+                context,
             )
             table = evaluate_discriminators(
                 real_x,
@@ -98,8 +95,7 @@ def robustness_experiment(
                         "roc_auc_mean",
                     ],
                     "diversity_ratio": (
-                        mean_pairwise_diversity(synthetic_z)
-                        / real_diversity
+                        mean_pairwise_diversity(synthetic_z) / real_diversity
                     ),
                     "duplicates": exact_duplicate_count(
                         synthetic_x,
@@ -131,11 +127,9 @@ def quick_condition_score(
         moderated=moderated,
         sbx_eta=sbx_eta,
     )
-    synthetic_z, synthetic_x, synthetic_species = (
-        populations_to_synthetic(
-            populations,
-            context,
-        )
+    synthetic_z, synthetic_x, synthetic_species = populations_to_synthetic(
+        populations,
+        context,
     )
     table = evaluate_discriminators(
         real_x,
@@ -153,10 +147,7 @@ def quick_condition_score(
             "Random Forest",
             "roc_auc_mean",
         ],
-        "diversity_ratio": (
-            mean_pairwise_diversity(synthetic_z)
-            / real_diversity
-        ),
+        "diversity_ratio": (mean_pairwise_diversity(synthetic_z) / real_diversity),
     }
 
 
@@ -170,7 +161,7 @@ def sensitivity_experiment(
     """Executa as ablações de eta, RMP e seleção moderada."""
     rows = []
 
-    for eta in [5.0, 30.0, 50.0]:
+    for eta in progress([5.0, 30.0, 50.0], "Sensibilidade: eta"):
         rows.append(
             {
                 "experiment": "SBX eta",
@@ -187,7 +178,7 @@ def sensitivity_experiment(
             }
         )
 
-    for rmp in [0.0, 0.20]:
+    for rmp in progress([0.0, 0.20], "Ablação: RMP"):
         rows.append(
             {
                 "experiment": "RMP",
@@ -204,7 +195,7 @@ def sensitivity_experiment(
             }
         )
 
-    for moderated in [False, True]:
+    for moderated in progress([False, True], "Ablação: nichos"):
         rows.append(
             {
                 "experiment": "Seleção moderada",
@@ -237,11 +228,9 @@ def polynomial_mutation_experiment(
         p_sbx=1.0,
         use_polynomial_mutation=True,
     )
-    _, synthetic_x, synthetic_species = (
-        populations_to_synthetic(
-            populations,
-            context,
-        )
+    _, synthetic_x, synthetic_species = populations_to_synthetic(
+        populations,
+        context,
     )
     results = evaluate_discriminators(
         real_x,
@@ -266,7 +255,7 @@ def crossfit_generator_experiment(
     rows = []
 
     for fold, (train_idx, holdout_idx) in enumerate(
-        outer.split(real_x, real_species),
+        progress(outer.split(real_x, real_species), "Crossfit: folds", total=5),
         start=1,
     ):
         x_train = real_x[train_idx]
@@ -287,30 +276,23 @@ def crossfit_generator_experiment(
                 p_sbx=p_sbx,
                 pop_size=10,
             )
-            _, synthetic_x, synthetic_species = (
-                populations_to_synthetic(
-                    populations,
-                    fold_context,
-                )
+            _, synthetic_x, synthetic_species = populations_to_synthetic(
+                populations,
+                fold_context,
             )
 
-            combined_x = np.vstack(
-                [x_holdout, synthetic_x]
-            )
+            combined_x = np.vstack([x_holdout, synthetic_x])
             origin = np.concatenate(
                 [
                     np.ones(len(x_holdout), dtype=int),
                     np.zeros(len(synthetic_x), dtype=int),
                 ]
             )
-            species_combined = np.concatenate(
-                [y_holdout, synthetic_species]
-            )
+            species_combined = np.concatenate([y_holdout, synthetic_species])
             strata = np.array(
                 [
                     f"{origin_label}_{species_label}"
-                    for origin_label, species_label
-                    in zip(origin, species_combined)
+                    for origin_label, species_label in zip(origin, species_combined)
                 ],
                 dtype=str,
             )
@@ -320,9 +302,7 @@ def crossfit_generator_experiment(
                 shuffle=True,
                 random_state=CV_SEED + fold,
             )
-            splits = list(
-                inner.split(combined_x, strata)
-            )
+            splits = list(inner.split(combined_x, strata))
 
             model = RandomForestClassifier(
                 n_estimators=300,
@@ -346,12 +326,8 @@ def crossfit_generator_experiment(
                 {
                     "fold": fold,
                     "condition": condition_name,
-                    "accuracy": float(
-                        scores["test_accuracy"].mean()
-                    ),
-                    "roc_auc": float(
-                        scores["test_roc_auc"].mean()
-                    ),
+                    "accuracy": float(scores["test_accuracy"].mean()),
+                    "roc_auc": float(scores["test_roc_auc"].mean()),
                 }
             )
 

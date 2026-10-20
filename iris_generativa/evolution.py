@@ -3,11 +3,21 @@
 from __future__ import annotations
 
 import random
+from time import perf_counter
 
 import numpy as np
 import pandas as pd
 
-from .config import GENERATIONS, INITIAL_JITTER, POP_SIZE, RMP, SBX_ETA
+from .config import (
+    GENERATIONS,
+    INITIAL_JITTER,
+    POP_SIZE,
+    RMP,
+    SBX_ETA,
+    TOURNAMENT_SIZE,
+    SBX_MODE,
+)
+from .progress import progress
 from .fitness import generative_fitness
 from .operators import (
     build_pygad_operator_engine,
@@ -52,7 +62,7 @@ def tournament_parent(
     task: int,
     ctx: dict,
     rng: np.random.Generator,
-    tournament_size: int = 3,
+    tournament_size: int = TOURNAMENT_SIZE,
 ) -> np.ndarray:
     """Seleciona um pai por torneio."""
     indices = rng.choice(
@@ -60,10 +70,7 @@ def tournament_parent(
         size=min(tournament_size, len(population)),
         replace=False,
     )
-    scores = [
-        generative_fitness(population[idx], task, ctx)[0]
-        for idx in indices
-    ]
+    scores = [generative_fitness(population[idx], task, ctx)[0] for idx in indices]
     winner = int(indices[int(np.argmax(scores))])
 
     return population[winner].copy()
@@ -83,11 +90,7 @@ def choose_parent_tasks(
     else:
         task_b = task_a
 
-    child_task = (
-        task_a
-        if task_a == task_b
-        else int(rng.choice([task_a, task_b]))
-    )
+    child_task = task_a if task_a == task_b else int(rng.choice([task_a, task_b]))
 
     return task_a, task_b, child_task
 
@@ -99,6 +102,7 @@ def select_next_population(
     pop_size: int,
     rng: np.random.Generator,
     moderated: bool = True,
+    return_indices: bool = False,
 ) -> np.ndarray:
     """Seleciona a próxima população com ou sem moderação por nichos."""
     scores = np.array(
@@ -108,7 +112,7 @@ def select_next_population(
 
     if not moderated:
         selected = np.argsort(scores)[-pop_size:]
-        return candidates[selected].copy()
+        return selected if return_indices else candidates[selected].copy()
 
     model = ctx["niche_models"][task]
     quotas_real = ctx["niche_quotas"][task].astype(float)
@@ -128,25 +132,17 @@ def select_next_population(
             continue
 
         ranked = available[np.argsort(scores[available])[::-1]]
-        selected_indices.extend(
-            ranked[: min(quota, len(ranked))].tolist()
-        )
+        selected_indices.extend(ranked[: min(quota, len(ranked))].tolist())
 
     selected_set = set(selected_indices)
-    remaining = [
-        idx
-        for idx in np.argsort(scores)[::-1]
-        if idx not in selected_set
-    ]
-    selected_indices.extend(
-        remaining[: pop_size - len(selected_indices)]
-    )
+    remaining = [idx for idx in np.argsort(scores)[::-1] if idx not in selected_set]
+    selected_indices.extend(remaining[: pop_size - len(selected_indices)])
     selected_array = np.array(
         selected_indices[:pop_size],
         dtype=int,
     )
 
-    return candidates[selected_array].copy()
+    return selected_array if return_indices else candidates[selected_array].copy()
 
 
 def populations_to_synthetic(
@@ -154,15 +150,10 @@ def populations_to_synthetic(
     ctx: dict,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Converte as populações finais para os espaços padronizado e original."""
-    synthetic_z = np.vstack(
-        [populations[task] for task in ctx["tasks"]]
-    )
+    synthetic_z = np.vstack([populations[task] for task in ctx["tasks"]])
     synthetic_x = ctx["scaler"].inverse_transform(synthetic_z)
     synthetic_species = np.concatenate(
-        [
-            np.full(len(populations[task]), task, dtype=int)
-            for task in ctx["tasks"]
-        ]
+        [np.full(len(populations[task]), task, dtype=int) for task in ctx["tasks"]]
     )
 
     return synthetic_z, synthetic_x, synthetic_species
@@ -178,8 +169,18 @@ def run_generator(
     moderated: bool = True,
     use_polynomial_mutation: bool = False,
     sbx_eta: float = SBX_ETA,
+    show_progress: bool | None = None,
+    selection_policy: str | None = None,
+    sbx_mode: str = SBX_MODE,
 ) -> tuple[dict[int, np.ndarray], pd.DataFrame]:
     """Executa uma condição gerativa por um número fixo de gerações."""
+    if selection_policy is not None:
+        if selection_policy not in {"task", "task_niching"}:
+            raise ValueError("Controle global disponível somente no laboratório 2D.")
+        moderated = selection_policy == "task_niching"
+    started = perf_counter()
+    ctx = dict(ctx)
+    ctx["_fitness_evaluations"] = 0
     rng = np.random.default_rng(seed)
     np.random.seed(seed)
     random.seed(seed)
@@ -193,9 +194,13 @@ def run_generator(
         eta=sbx_eta,
     )
 
+    if sbx_mode not in {"symmetric", "legacy_lower"}:
+        raise ValueError("Modo SBX inválido.")
+    engine.iris_sbx_mode = sbx_mode
+
     history = []
 
-    for generation in range(1, generations + 1):
+    for generation in progress(range(1, generations + 1), "Evolução", show_progress):
         kde_models = fit_gene_kdes(populations)
         offspring_by_task = {task: [] for task in ctx["tasks"]}
 
@@ -242,9 +247,7 @@ def run_generator(
 
             if use_polynomial_mutation:
                 child = np.asarray(
-                    engine.polynomial_mutation(
-                        child.reshape(1, -1)
-                    )[0],
+                    engine.polynomial_mutation(child.reshape(1, -1))[0],
                     dtype=float,
                 )
                 child = np.clip(
@@ -260,9 +263,7 @@ def run_generator(
         for task in ctx["tasks"]:
             if offspring_by_task[task]:
                 offspring = np.vstack(offspring_by_task[task])
-                candidates = np.vstack(
-                    [populations[task], offspring]
-                )
+                candidates = np.vstack([populations[task], offspring])
             else:
                 candidates = populations[task].copy()
 
@@ -286,6 +287,8 @@ def run_generator(
         history.append(
             {
                 "generation": generation,
+                "fitness_evaluations": ctx["_fitness_evaluations"],
+                "elapsed_seconds": perf_counter() - started,
                 "fitness_mean": float(np.mean(all_scores)),
                 "fitness_max": float(np.max(all_scores)),
                 "generated_sbx": generated_sbx,
