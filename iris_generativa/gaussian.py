@@ -71,11 +71,15 @@ class GaussianGenerator:
         include_all=False,
         covariance="full",
         regularization=GAUSSIAN_REG,
+        target_products=False,  # Restringe os produtos aos que incluem a tarefa-alvo.
     ):
         if method not in {"gaussian_mixture", "gaussian_product"}:
             raise ValueError("Método gaussiano desconhecido.")
         if not 0 <= own_weight <= 1 or not 0 <= product_weight <= 1:
             raise ValueError("Massas devem pertencer a [0, 1].")
+        self.target_products = (
+            target_products  # Preserva a mistura uniforme como referência.
+        )
         self.method, self.own_weight = method, own_weight
         self.product_weight, self.include_all = product_weight, include_all
         self.covariance, self.regularization = covariance, regularization
@@ -102,7 +106,22 @@ class GaussianGenerator:
         if task not in self.tasks:
             raise ValueError("Tarefa desconhecida.")
         n_products = len(self.models) - n_tasks
-        if n_products:
+        if n_products and self.target_products:
+            weights = np.zeros(
+                len(self.models)
+            )  # Não atribui outra espécie isolada ao alvo.
+            weights[self.tasks.index(task)] = (
+                1 - self.product_weight
+            )  # Massa intratarefa.
+            eligible = [
+                i
+                for i, group in enumerate(self.components)
+                if len(group) > 1 and task in group
+            ]  # Pares relevantes.
+            weights[eligible] = self.product_weight / len(
+                eligible
+            )  # Normalização entre produtos elegíveis.
+        elif n_products:
             # Adaptação Iris: massa individual uniforme; produtos uniformes entre pares.
             weights = [(1 - self.product_weight) / n_tasks] * n_tasks
             weights += [self.product_weight / n_products] * n_products

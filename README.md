@@ -84,3 +84,9 @@ python -m pytest -q
 O teste de regressão compara as três condições anteriores, com SBX em modo `legacy_lower`, com o commit `ff2659f`; exige um clone com esse histórico Git. Os demais testes verificam os produtos gaussianos, reprodutibilidade, aprendizado do VAE, cotas, controles de seleção e exclusão dos dados reservados no cross-fitting.
 
 Consulte [VALIDACAO.md](VALIDACAO.md) para resultados e limitações desta entrega. O uso da Iris é experimental: fidelidade e baixa distinguibilidade não demonstram validade biológica, privacidade ou criatividade fora da distribuição.
+
+## Refinamento 2.4
+
+A nova iteração acrescenta seleção parental por nichos, produtos condicionados à espécie, warmup de KL, diagnósticos comuns e avaliação aninhada com população evolutiva constante. Os padrões de geração da versão 2.3.1 permanecem como referência; nenhuma variante é promovida automaticamente.
+
+Consulte [o protocolo e seus limites](docs/REFINAMENTO_2_4.md). Para executar a avaliação aninhada: `python scripts/refine_experiments.py --profile full --phase nested --output results/refinement_local_full --workers 4`. Essa busca é mais custosa que executar uma vez o notebook. Resultados parciais são salvos por job.

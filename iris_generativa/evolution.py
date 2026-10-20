@@ -172,12 +172,16 @@ def run_generator(
     show_progress: bool | None = None,
     selection_policy: str | None = None,
     sbx_mode: str = SBX_MODE,
+    tournament_size: int = TOURNAMENT_SIZE,  # Pressão seletiva explícita.
+    record_diagnostics: bool = False,  # Observação opcional sem alterar RNG.
 ) -> tuple[dict[int, np.ndarray], pd.DataFrame]:
     """Executa uma condição gerativa por um número fixo de gerações."""
     if selection_policy is not None:
         if selection_policy not in {"task", "task_niching"}:
             raise ValueError("Controle global disponível somente no laboratório 2D.")
         moderated = selection_policy == "task_niching"
+    if tournament_size < 1 or not 0 <= rmp <= 1 or not 0 <= p_sbx <= 1:
+        raise ValueError("Torneio ou probabilidades inválidos.")
     started = perf_counter()
     ctx = dict(ctx)
     ctx["_fitness_evaluations"] = 0
@@ -199,6 +203,13 @@ def run_generator(
     engine.iris_sbx_mode = sbx_mode
 
     history = []
+    births = {
+        t: np.zeros(len(p), dtype=int) for t, p in populations.items()
+    }  # Geração de origem.
+    diagnostic_rows, events, final_candidates = [], [], {}  # Saídas observacionais.
+    from .diagnostics import (
+        population_metrics,
+    )  # Importação evita dependência circular.
 
     for generation in progress(range(1, generations + 1), "Evolução", show_progress):
         kde_models = fit_gene_kdes(populations)
@@ -219,12 +230,14 @@ def run_generator(
                 task_a,
                 ctx,
                 rng,
+                tournament_size=tournament_size,
             )
             parent_b = tournament_parent(
                 populations[task_b],
                 task_b,
                 ctx,
                 rng,
+                tournament_size=tournament_size,
             )
 
             if rng.random() < p_sbx:
@@ -259,6 +272,7 @@ def run_generator(
             offspring_by_task[child_task].append(child)
 
         next_populations = {}
+        survived_count = 0  # Descendentes aceitos nesta geração.
 
         for task in ctx["tasks"]:
             if offspring_by_task[task]:
@@ -267,14 +281,58 @@ def run_generator(
             else:
                 candidates = populations[task].copy()
 
-            next_populations[task] = select_next_population(
+            indices = select_next_population(
                 candidates,
                 task,
                 ctx,
                 pop_size,
                 rng,
                 moderated=moderated,
+                return_indices=True,
             )
+            next_populations[task] = candidates[
+                indices
+            ].copy()  # Mesmos índices da seleção original.
+            n_new = (
+                len(candidates) - pop_size
+            )  # Número variável por tarefa no crossover.
+            origins = np.r_[
+                births[task], np.full(n_new, generation)
+            ]  # Mantém fundadores identificáveis.
+            births[task] = origins[
+                indices
+            ]  # Acompanha somente indivíduos sobreviventes.
+            survived = set(
+                indices[indices >= pop_size] - pop_size
+            )  # Índices dos novos aceitos.
+            survived_count += len(survived)  # Renovação total.
+            if record_diagnostics:
+                for stage, points in (
+                    ("candidates", candidates[pop_size:]),
+                    ("survivors", next_populations[task]),
+                ):
+                    if len(points):
+                        diagnostic_rows.append(
+                            dict(
+                                generation=generation,
+                                task=task,
+                                stage=stage,
+                                **population_metrics(points, task, ctx),
+                            )
+                        )  # Sem RNG.
+                events.extend(
+                    dict(
+                        generation=generation,
+                        task=task,
+                        candidate=i,
+                        survived=i in survived,
+                    )
+                    for i in range(n_new)
+                )  # Registro por proposta.
+                if generation == generations:
+                    final_candidates[task] = {
+                        "clipped": candidates[pop_size:].copy()
+                    }  # Operadores já aplicam limites internamente.
 
         populations = next_populations
 
@@ -293,7 +351,17 @@ def run_generator(
                 "fitness_max": float(np.max(all_scores)),
                 "generated_sbx": generated_sbx,
                 "generated_obscan": generated_obscan,
+                "survived_offspring": survived_count,  # Renovação observada.
+                "founder_fraction": float(
+                    np.mean(np.concatenate(list(births.values())) == 0)
+                ),  # Não é objetivo de seleção.
             }
         )
 
-    return populations, pd.DataFrame(history)
+    table = pd.DataFrame(history)  # Histórico mantém as colunas anteriores.
+    table.attrs.update(
+        diagnostics=pd.DataFrame(diagnostic_rows),
+        offspring_events=pd.DataFrame(events),
+        final_candidates=final_candidates,
+    )  # Interface comum aos EDAs.
+    return populations, table

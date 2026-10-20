@@ -42,6 +42,7 @@ class VAEGenerator:
         learning_rate=config.VAE_LEARNING_RATE,
         beta=config.VAE_BETA,
         batch_size=config.VAE_BATCH_SIZE,
+        kl_warmup_steps=0,  # Atualizações do otimizador até alcançar beta integral.
     ):
         if (
             min(features, len(tasks), latent, hidden, batch_size) < 1
@@ -49,6 +50,10 @@ class VAEGenerator:
             or learning_rate <= 0
         ):
             raise ValueError("Hiperparâmetros inválidos para VAE.")
+        if kl_warmup_steps < 0:
+            raise ValueError("Warmup deve ser não negativo.")
+        self.kl_warmup_steps = kl_warmup_steps  # Contagem contínua entre gerações.
+        self.optimizer_steps = 0  # Orçamento efetivo de treinamento.
         self.tasks, self.latent = list(tasks), latent
         self.beta, self.batch_size = beta, batch_size
         # A inicialização não altera o RNG global do processo chamador.
@@ -83,13 +88,21 @@ class VAEGenerator:
                 )
                 reconstruction = ((reconstructed - x[indices]) ** 2).sum(dim=1).mean()
                 kl = -0.5 * (1 + logvar - mu.square() - logvar.exp()).sum(dim=1).mean()
-                loss = reconstruction + self.beta * kl
+                effective_beta = self.beta * min(
+                    1.0, (self.optimizer_steps + 1) / max(1, self.kl_warmup_steps)
+                )  # Rampa linear opcional.
+                loss = (
+                    reconstruction + effective_beta * kl
+                )  # Objetivo desta atualização.
                 if not torch.isfinite(loss):
                     raise FloatingPointError("Perda não finita no VAE.")
                 self.optimizer.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 10.0)
                 self.optimizer.step()
+                self.optimizer_steps += (
+                    1  # Mede custo sem depender do número de épocas.
+                )
                 totals += len(indices) * np.array(
                     [loss.item(), reconstruction.item(), kl.item()]
                 )
@@ -100,6 +113,8 @@ class VAEGenerator:
                 loss=totals[0],
                 reconstruction=totals[1],
                 kl=totals[2],
+                effective_beta=effective_beta,  # Peso ao fim da época.
+                optimizer_steps=self.optimizer_steps,  # Atualizações acumuladas do modelo.
             )
             self.training_history.append(row)
             bar.set_postfix(loss=f"{totals[0]:.3f}")
