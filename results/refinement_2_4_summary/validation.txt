@@ -1,0 +1,8 @@
+......................                                                   [100%]
+22 passed in 19.13s
+
+Notebook: célula final executada sem erros, quatro saídas.
+
+Retomada idêntica: exit 0, 12 checkpoints preservados.
+Retomada com perfil divergente: rejeitada antes de executar.
+Lock temporário remanescente removido após confirmação do encerramento do executor original.

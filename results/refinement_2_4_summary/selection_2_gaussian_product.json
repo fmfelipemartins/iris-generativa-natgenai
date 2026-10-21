@@ -1,0 +1,58 @@
+{
+  "selected": "reference",
+  "accepted": [],
+  "reference_loss": 2.808651949129579,
+  "margins": {
+    "wasserstein": 0.06112640852092719,
+    "covariance_error": 0.15946568400628017,
+    "correlation_error": 0.07545662001512152,
+    "diversity_error": 0.05175389344119423,
+    "coverage": 0.1386613343892683,
+    "near_copy_rate": 0.05,
+    "incoherence": 0.05
+  },
+  "rule": "5% loss reduction; per-metric guards; no increase in exact duplicates",
+  "options": {
+    "pop_size": 50,
+    "generations": 40,
+    "show_progress": false,
+    "record_diagnostics": true,
+    "selection_policy": "task_niching",
+    "fitness_weights": {
+      "plausibility": 0.5,
+      "novelty": 0.25,
+      "coherence": 0.25
+    },
+    "parent_fraction": 0.5,
+    "parent_policy": "top",
+    "boundary_policy": "clip",
+    "resample_attempts": 5,
+    "vae_epochs": 30,
+    "warm_start": true,
+    "refit_every": 1,
+    "model_options": {
+      "own_weight": 0.7,
+      "product_weight": 0.4,
+      "include_all": false,
+      "covariance": "full",
+      "regularization": 1e-06,
+      "target_products": false
+    }
+  },
+  "condition": "gaussian_product",
+  "outer": 2,
+  "finalists": [
+    "target02",
+    "target_products"
+  ],
+  "screen_rank": [
+    "target02",
+    "target_products",
+    "diagonal",
+    "no_products",
+    "parent_niches",
+    "products02",
+    "regularized",
+    "reference"
+  ]
+}

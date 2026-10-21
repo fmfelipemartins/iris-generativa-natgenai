@@ -205,3 +205,36 @@ def test_species_guard_rejects_hidden_deterioration():
         [row("reference", baseline_tasks, 1.0), row("variant", variant_tasks, 0.8)]
     )  # Média melhora, mas guardas por tarefa falham.
     assert result["selected"] == "reference"  # Não mascara dano local com média global.
+
+
+def test_resampling_has_budget_and_clipping_fallback(monkeypatch):
+    ctx = context()  # Limites reais usados pela geração.
+    calls = []  # Número de propostas por chamada ao modelo.
+
+    def outside(self, task, size, rng):
+        calls.append(size)  # Inclui amostras iniciais e tentativas adicionais.
+        return np.tile(ctx["global_high"] + 100, (size, 1)), [
+            (task,)
+        ] * size  # Modelo deliberadamente fora da caixa.
+
+    monkeypatch.setattr(
+        GaussianGenerator, "sample", outside
+    )  # Força a condição limite sem depender de sorte.
+    result = run_condition(
+        ctx,
+        5,
+        "gaussian_mixture",
+        pop_size=5,
+        generations=1,
+        boundary_policy="resample",
+        resample_attempts=2,
+        show_progress=False,
+    )  # Duas tentativas por tarefa.
+    assert sum(calls) == 45  # Quinze iniciais e trinta propostas adicionais.
+    assert (
+        result["history"].iloc[0].resampled == 30
+    )  # Custo extra explicitamente registrado.
+    assert result["history"].iloc[0].clipped == 15  # Fallback após esgotar o orçamento.
+    assert np.all(
+        result["synthetic_z"] <= ctx["global_high"]
+    )  # Não deixa candidatos inválidos sobreviverem fora dos limites.

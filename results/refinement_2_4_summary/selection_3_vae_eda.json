@@ -1,0 +1,60 @@
+{
+  "selected": "refined_learning_rate",
+  "accepted": [
+    "refined_learning_rate"
+  ],
+  "reference_loss": 2.4850788024458796,
+  "margins": {
+    "wasserstein": 0.056083886092295795,
+    "covariance_error": 0.19154388926657845,
+    "correlation_error": 0.0697339816747429,
+    "diversity_error": 0.05067749050849248,
+    "coverage": 0.1330103521262988,
+    "near_copy_rate": 0.05,
+    "incoherence": 0.05
+  },
+  "rule": "5% loss reduction; per-metric guards; no increase in exact duplicates",
+  "options": {
+    "pop_size": 50,
+    "generations": 40,
+    "show_progress": false,
+    "record_diagnostics": true,
+    "selection_policy": "task_niching",
+    "fitness_weights": {
+      "plausibility": 0.5,
+      "novelty": 0.25,
+      "coherence": 0.25
+    },
+    "parent_fraction": 0.5,
+    "parent_policy": "top",
+    "boundary_policy": "clip",
+    "resample_attempts": 5,
+    "vae_epochs": 30,
+    "warm_start": true,
+    "refit_every": 1,
+    "model_options": {
+      "latent": 32,
+      "hidden": 64,
+      "learning_rate": 0.0003,
+      "beta": 1.0,
+      "batch_size": 32,
+      "kl_warmup_steps": 0
+    }
+  },
+  "condition": "vae_eda",
+  "outer": 3,
+  "finalists": [
+    "all_beta01_warmup",
+    "all_beta01"
+  ],
+  "screen_rank": [
+    "all_beta01_warmup",
+    "all_beta01",
+    "niches_beta01_latent8",
+    "all_beta001_latent2",
+    "niches_warmup",
+    "parent_niches",
+    "parents075",
+    "reference"
+  ]
+}
