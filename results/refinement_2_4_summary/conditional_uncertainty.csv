@@ -1,0 +1,7 @@
+condition,delta_loss,conditional_ci_low,conditional_ci_high,seeds,interpretation
+Híbrido 50/50,-0.021368179094651996,-0.047483999319223195,0.0047476411299192025,5,"algorithmic uncertainty conditional on fixed data/splits; exploratory, not population CI"
+OB-Scan,0.0,0.0,0.0,5,"algorithmic uncertainty conditional on fixed data/splits; exploratory, not population CI"
+SBX,0.0,0.0,0.0,5,"algorithmic uncertainty conditional on fixed data/splits; exploratory, not population CI"
+gaussian_mixture,0.0,0.0,0.0,5,"algorithmic uncertainty conditional on fixed data/splits; exploratory, not population CI"
+gaussian_product,0.0,0.0,0.0,5,"algorithmic uncertainty conditional on fixed data/splits; exploratory, not population CI"
+vae_eda,-0.09469510825589192,-0.11661005831161309,-0.0692524909698213,5,"algorithmic uncertainty conditional on fixed data/splits; exploratory, not population CI"

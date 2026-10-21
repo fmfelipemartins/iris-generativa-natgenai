@@ -64,3 +64,16 @@ VAE_DIAGNOSTIC_SAMPLES = 128  # Latentes fixos por tarefa para sondar o decoder.
 VAE_DIAGNOSTIC_SEED = 731  # Seed independente usada somente nas sondagens.
 VAE_ACTIVE_UNIT_THRESHOLD = 0.01  # Limiar descritivo da variância de mu por dimensão.
 VAE_ABLATION_SEEDS = (0, 1, 2)  # Seeds pareadas exploratórias; não seleção definitiva.
+
+REFINEMENT_POP_SIZE = 50  # População por espécie, inclusive na evolução dos folds externos.
+REFINEMENT_SCREEN_GENERATIONS = 10  # Gerações usadas apenas para descartar variantes na triagem.
+REFINEMENT_SCREEN_SEEDS = (0, 1, 2)  # Seeds pareadas da triagem interna.
+REFINEMENT_CONFIRM_SEEDS = (3, 4, 5, 6, 7)  # Seeds da confirmação em orçamento completo.
+REFINEMENT_FINAL_SEEDS = (20, 21, 22, 23, 24)  # Seeds independentes para avaliação externa.
+REFINEMENT_INNER_FOLDS = 2  # Subdivisões do treino externo para escolher configurações.
+REFINEMENT_OUTER_FOLDS = 5  # Folds externos que não participam da escolha de variantes.
+REFINEMENT_MIN_GAIN = 0.05  # Redução mínima da perda interna para aceitar uma variante.
+REFINEMENT_MARGIN_FRACTION = 0.25  # Fração da escala real-real tolerada como deterioração.
+REFINEMENT_RATE_MARGIN = 0.05  # Tolerância absoluta nas taxas de proximidade e incoerência.
+REFINEMENT_CLIP_TRIGGER = 0.05  # Incidência de clipping que habilita testar reamostragem.
+REFINEMENT_CALIBRATIONS = 20  # Repetições real-real para calibrar perdas usando só o treino.

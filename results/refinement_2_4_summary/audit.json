@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "jobs": 3265,
+  "decisions": 30,
+  "external_runs": 315,
+  "paired_comparisons": 150,
+  "profile": "full",
+  "folds": 5,
+  "seeds_per_fold": 5,
+  "note": "Verificações estruturais e de finitude; não provam superioridade científica."
+}

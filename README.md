@@ -70,7 +70,7 @@ O fitness permanece `0,50 P + 0,25 N + 0,25 C`. A novidade favorece uma distânc
 | `scripts/review_experiments.py` | Auditoria SBX e comparações controladas da revisão |
 | `tests/test_iteration.py` | Regressão, referências analíticas e isolamento |
 
-As saídas incluem histórico de fitness, avaliações de fitness e tempo de geração. Novos geradores também registram componente de origem, clipping e sobrevivência dos candidatos; o VAE registra perdas por época. Os resultados da suíte guardam perfil, configuração, seeds e versões. A última célula exporta tabelas CSV, amostras e diagnósticos em uma pasta exclusiva `results/execution_<perfil>_<data>`. Essas exportações locais são ignoradas pelo Git; referências selecionadas são versionadas separadamente.
+As saídas incluem histórico de fitness, avaliações de fitness e tempo de geração. Novos geradores também registram componente de origem, clipping e sobrevivência dos candidatos; o VAE registra perdas por época. Os resultados da suíte guardam perfil, configuração, seeds e versões. A célula de registro da execução exporta tabelas CSV, amostras e diagnósticos em uma pasta exclusiva `results/execution_<perfil>_<data>`. Essas exportações locais são ignoradas pelo Git; referências selecionadas são versionadas separadamente.
 
 O SBX padrão agora sorteia os dois ramos por gene. `SBX_MODE="legacy_lower"` existe apenas para reproduzir o comportamento assimétrico anterior. A instrumentação do VAE separa candidatos e sobreviventes, acompanha fundadores, KL, unidades ativas e resposta do decoder. Nenhum hiperparâmetro de treinamento foi escolhido a partir do cross-fitting.
 
@@ -84,3 +84,11 @@ python -m pytest -q
 O teste de regressão compara as três condições anteriores, com SBX em modo `legacy_lower`, com o commit `ff2659f`; exige um clone com esse histórico Git. Os demais testes verificam os produtos gaussianos, reprodutibilidade, aprendizado do VAE, cotas, controles de seleção e exclusão dos dados reservados no cross-fitting.
 
 Consulte [VALIDACAO.md](VALIDACAO.md) para resultados e limitações desta entrega. O uso da Iris é experimental: fidelidade e baixa distinguibilidade não demonstram validade biológica, privacidade ou criatividade fora da distribuição.
+
+## Refinamento 2.4
+
+A nova iteração acrescenta seleção parental por nichos, produtos condicionados à espécie, warmup de KL, diagnósticos comuns e avaliação aninhada com população evolutiva constante. Os padrões de geração da versão 2.3.1 permanecem como referência; nenhuma variante é promovida automaticamente.
+
+Consulte [o protocolo e seus limites](docs/REFINAMENTO_2_4.md). Para executar a avaliação aninhada: `python scripts/refine_experiments.py --profile full --phase nested --output results/refinement_local_full --workers 4`. Essa busca é mais custosa que executar uma vez o notebook. Resultados parciais são salvos por job.
+
+A avaliação completa desta iteração e sua interpretação estão em [Resultados do refinamento 2.4](docs/RESULTADOS_REFINAMENTO_2_4.md). A seção 7 do notebook também lê a consolidação versionada em `results/refinement_2_4_summary`, sem executar a busca novamente. Os registros individuais completos são preservados no arquivo de evidências da execução; a consolidação contém as tabelas externas, as decisões de seleção e a auditoria.

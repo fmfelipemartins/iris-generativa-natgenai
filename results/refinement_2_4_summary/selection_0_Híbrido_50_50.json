@@ -1,0 +1,48 @@
+{
+  "selected": "reference",
+  "accepted": [],
+  "reference_loss": 1.6851804099953651,
+  "margins": {
+    "wasserstein": 0.05904026411648283,
+    "covariance_error": 0.16166202452816858,
+    "correlation_error": 0.0679222303341189,
+    "diversity_error": 0.04870902210734633,
+    "coverage": 0.12723528071449444,
+    "near_copy_rate": 0.05,
+    "incoherence": 0.05
+  },
+  "rule": "5% loss reduction; per-metric guards; no increase in exact duplicates",
+  "options": {
+    "pop_size": 50,
+    "generations": 40,
+    "show_progress": false,
+    "record_diagnostics": true,
+    "selection_policy": "task_niching",
+    "fitness_weights": {
+      "plausibility": 0.5,
+      "novelty": 0.25,
+      "coherence": 0.25
+    },
+    "rmp": 0.2,
+    "sbx_eta": 50.0,
+    "sbx_mode": "symmetric",
+    "tournament_size": 3,
+    "use_polynomial_mutation": false
+  },
+  "condition": "Híbrido 50/50",
+  "outer": 0,
+  "finalists": [
+    "tournament2",
+    "eta15"
+  ],
+  "screen_rank": [
+    "tournament2",
+    "eta15",
+    "eta5",
+    "eta30",
+    "rmp01",
+    "eta15_rmp0",
+    "rmp0",
+    "reference"
+  ]
+}

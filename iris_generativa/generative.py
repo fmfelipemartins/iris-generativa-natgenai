@@ -38,6 +38,9 @@ def run_eda(
     show_progress=None,
     model_options=None,
     record_diagnostics=config.RECORD_DIAGNOSTICS,
+    parent_policy="top",  # top mantém a referência; niching preserva cotas parentais.
+    boundary_policy="clip",  # Alternativa experimental: reamostragem limitada.
+    resample_attempts=5,  # Limite de novas tentativas por candidato inválido.
 ):
     """Atualiza modelos nos melhores pais de cada tarefa e amostra uma nova geração."""
     if method not in config.GENERATIVE_METHODS or selection_policy not in {
@@ -52,6 +55,12 @@ def run_eda(
         or refit_every < 1
     ):
         raise ValueError("Orçamento ou fração parental inválidos.")
+    if (
+        parent_policy not in {"top", "niching"}
+        or boundary_policy not in {"clip", "resample"}
+        or resample_attempts < 0
+    ):
+        raise ValueError("Política experimental inválida.")
     ctx = dict(ctx)
     ctx["_fitness_evaluations"] = 0
     rng = np.random.default_rng(seed)
@@ -67,7 +76,11 @@ def run_eda(
         for task, points in populations.items():
             scores = [generative_fitness(x, task, ctx)[0] for x in points]
             count = max(2, int(np.ceil(parent_fraction * len(points))))
-            selected[task] = points[np.argsort(scores)[-count:]]
+            selected[task] = (
+                points[np.argsort(scores)[-count:]]
+                if parent_policy == "top"
+                else select_next_population(points, task, ctx, count, rng)
+            )  # Cotas nos nichos já existentes.
         should_fit = (
             model is None or (generation - 1) % refit_every == 0 or method != "vae_eda"
         )
@@ -104,11 +117,33 @@ def run_eda(
                 dict(generation=generation, **row) for row in model.diagnose(selected)
             )
         next_populations = {}
-        clipped_count, survivor_count = 0, 0
+        clipped_count, survivor_count, resample_count = 0, 0, 0
         for task in ctx["tasks"]:
             raw, origins = model.sample(task, pop_size, rng)
             if not np.isfinite(raw).all():
                 raise FloatingPointError("Amostragem produziu valores não finitos.")
+            original_raw = (
+                raw.copy()
+            )  # Preserva o diagnóstico antes da correção de limites.
+            resampled = 0  # Conta todas as propostas adicionais, inclusive rejeitadas.
+            if boundary_policy == "resample":
+                for attempt in range(resample_attempts):
+                    invalid = np.any(
+                        (raw < ctx["global_low"]) | (raw > ctx["global_high"]), axis=1
+                    )  # Candidatos fora da caixa.
+                    if not invalid.any():
+                        break  # Não consome RNG quando todos estão dentro dos limites.
+                    replacements, replacement_origins = model.sample(
+                        task, int(invalid.sum()), rng
+                    )  # Reamostra o modelo.
+                    if not np.isfinite(replacements).all():
+                        raise FloatingPointError("Reamostragem não finita.")
+                    raw[invalid] = replacements  # Substitui apenas propostas inválidas.
+                    for index, origin in zip(
+                        np.flatnonzero(invalid), replacement_origins
+                    ):
+                        origins[index] = origin  # Mantém a origem do candidato efetivo.
+                    resampled += int(invalid.sum())  # Registra o custo extra.
             offspring = np.clip(raw, ctx["global_low"], ctx["global_high"])
             clipped = np.any(raw != offspring, axis=1)
             candidates = np.vstack((populations[task], offspring))
@@ -128,7 +163,7 @@ def run_eda(
             if record_diagnostics:
                 for stage, stage_points in (
                     ("selected_parents", selected[task]),
-                    ("raw_candidates", raw),
+                    ("raw_candidates", original_raw),
                     ("clipped_candidates", offspring),
                     ("survivors", next_populations[task]),
                 ):
@@ -142,8 +177,9 @@ def run_eda(
                     )
                 if generation == generations:
                     final_candidates[task] = dict(
-                        raw=raw.copy(), clipped=offspring.copy()
+                        raw=original_raw.copy(), clipped=offspring.copy()
                     )
+            resample_count += resampled  # Propostas adicionais por geração.
             clipped_count += int(clipped.sum())
             survivor_count += len(survivors)
             for index, origin in enumerate(origins):
@@ -173,6 +209,7 @@ def run_eda(
                 generated_model=pop_size * len(populations),
                 survived_offspring=survivor_count,
                 clipped=clipped_count,
+                resampled=resample_count,  # Custo da política opcional de limites.
                 founder_fraction=float(
                     np.mean(np.concatenate(list(birth_generations.values())) == 0)
                 ),
@@ -192,6 +229,19 @@ def run_eda(
 def run_condition(context, seed, condition, **options):
     """Normaliza saídas; opções são explícitas e inválidas não são descartadas."""
     started = perf_counter()
+    context = dict(context)  # Não altera o contexto compartilhado entre experimentos.
+    options = dict(options)  # Evita mutação das opções fornecidas pelo chamador.
+    weights = options.pop("fitness_weights", None)  # Sobrescrita explícita do fitness.
+    if weights is not None:
+        if (
+            set(weights) != set(config.FITNESS_WEIGHTS)
+            or any(not np.isfinite(v) or v < 0 for v in weights.values())
+            or not np.isclose(sum(weights.values()), 1)
+        ):
+            raise ValueError(
+                "Pesos do fitness devem ser finitos, não negativos e somar 1."
+            )
+        context["fitness_weights"] = dict(weights)  # Isolamento por execução.
     if condition in config.MAIN_CONDITIONS:
         populations, history = run_generator(
             context, seed, config.MAIN_CONDITIONS[condition], **options

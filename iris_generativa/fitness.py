@@ -59,10 +59,13 @@ def generative_fitness(
 
     coherence = coherence_score(point, task, ctx)
 
+    weights = ctx.get(
+        "fitness_weights", FITNESS_WEIGHTS
+    )  # Configuração isolada por execução.
     total = (
-        FITNESS_WEIGHTS["plausibility"] * plausibility
-        + FITNESS_WEIGHTS["novelty"] * novelty
-        + FITNESS_WEIGHTS["coherence"] * coherence
+        weights["plausibility"] * plausibility
+        + weights["novelty"] * novelty
+        + weights["coherence"] * coherence
     )
 
     return total, plausibility, novelty, coherence
