@@ -1,5 +1,7 @@
 # Refinamento 2.4 — protocolo e interpretação
 
+Registro do protocolo 2.4; execução concluída em [Resultados 2.4](RESULTADOS_REFINAMENTO_2_4.md). A continuação está no [protocolo 2.5](REFINAMENTO_2_5.md).
+
 Esta iteração mantém seis famílias gerativas, cinco nichos fixos e híbrido probabilístico. Não promove hiperparâmetros automaticamente nem altera os padrões da versão 2.3.1. As alternativas são configurações explícitas dos métodos existentes.
 
 ## Alterações implementadas

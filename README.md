@@ -1,6 +1,6 @@
 # Iris Generativa com NatGenAI
 
-Experimento de geração de dados sintéticos inspirado em [Evolutionary Computation as Natural Generative AI](https://arxiv.org/html/2510.08590v1). A iteração **2.5 está concluída e integrada à `main`**. A suíte principal compara seis condições, mantendo 50 registros por espécie da Iris: **SBX, OB-Scan-KDE, híbrido probabilístico, mistura gaussiana, mistura com produtos gaussianos e VAE-EDA condicional**.
+Experimento de geração de dados sintéticos inspirado em [Evolutionary Computation as Natural Generative AI](https://arxiv.org/html/2510.08590v1). A iteração **2.5 está concluída e integrada à `main`** (versão do pacote: `2.5.0`). A suíte principal compara seis condições, mantendo 50 registros por espécie da Iris: **SBX, OB-Scan-KDE, híbrido probabilístico, mistura gaussiana, mistura com produtos gaussianos e VAE-EDA condicional**.
 
 O notebook principal é [`notebooks/Iris_Generativa_NatGenAI.ipynb`](notebooks/Iris_Generativa_NatGenAI.ipynb). Ele contém a explicação dos métodos, a pipeline, saídas históricas da suíte e as consolidações `full` dos refinamentos 2.4 e 2.5 nas seções 7 e 8. Essas duas seções leem resultados salvos, sem repetir a busca. As diferenças entre artigo e implementação estão em [docs/METODOLOGIA.md](docs/METODOLOGIA.md).
 
@@ -55,7 +55,7 @@ O cross-fitting histórico da suíte e a avaliação aninhada dos refinamentos s
 5. Comparar seeds, sensibilidade, políticas de seleção e cenários artificiais 2D.
 6. Repetir o ajuste dentro de folds com reais reservados para avaliação.
 
-Os refinamentos acrescentam seleção parental por nichos, sobrevivência probabilística por rank e novidade por faixa como alternativas experimentais. A avaliação aninhada separa triagem, confirmação e teste externo; registra candidatos e sobreviventes, critérios de rejeição por espécie, controles gaussianos e utilidade em classificação de espécies. O diagrama acima resume a suíte principal; não representa todas as etapas dessa busca.
+Os refinamentos acrescentam seleção parental por nichos, sobrevivência probabilística por rank e novidade por faixa como alternativas experimentais. A avaliação aninhada separa triagem, confirmação e teste externo; registra candidatos e sobreviventes, critérios de rejeição por espécie, controles gaussianos e utilidade em classificação de espécies. O diagrama acima resume a suíte principal; a [pipeline da 2.4](docs/pipeline_refinamento.svg) registra aquela busca, e o [fluxo da 2.5](docs/METODOLOGIA.md#fluxo-da-avaliação-25) descreve o protocolo final. As diferenças entre fitness, perda conjunta, indistinguibilidade e utilidade estão em [Metodologia](docs/METODOLOGIA.md).
 
 O fitness permanece `0,50 P + 0,25 N + 0,25 C`. Na configuração padrão, a novidade favorece uma distância-alvo ao real mais próximo; não cresce indefinidamente com a distância. O híbrido sorteia o operador por descendente, sem cota exata de 50/50. Nichos dinâmicos permanecem fora desta iteração.
 

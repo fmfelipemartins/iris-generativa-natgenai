@@ -1,10 +1,12 @@
-# Metodologias e decisões da iteração 2.3.1
+# Metodologias e decisões — estado consolidado da iteração 2.5
+
+A base de geração abaixo corresponde aos padrões preservados desde a revisão 2.3.1. As alternativas 2.4/2.5 são opcionais e estão descritas ao final; sua disponibilidade não significa promoção a novo padrão.
 
 Referência principal: [Evolutionary Computation as Natural Generative AI](https://arxiv.org/html/2510.08590v1), especialmente a discussão de moderação e os experimentos artificiais das seções VI-A/VI-B. A tradução fornecida pelo projeto foi utilizada como apoio de leitura.
 
 ## Correspondência com o artigo
 
-| Elemento | Implementação nesta iteração | Alcance |
+| Elemento | Implementação de referência | Alcance |
 |---|---|---|
 | Moderação da seleção | `global`, `task`, `task_niching` | Controle experimental inspirado na proteção de tarefas; não implementa todo o MFEA. Global fica no laboratório 2D. |
 | VAE-EDA | VAE condicional, uma camada oculta no encoder/decoder, latente 32; reajuste em pais selecionados | Arquitetura inspirada no artigo; largura 64, Adam, β=1 e orçamento são escolhas explícitas da aplicação. |
@@ -42,7 +44,7 @@ O controle `global` classifica todos os candidatos por fitness na tarefa atribu�
 
 ## Avaliação e interpretação
 
-Mesmas seeds e gerações tornam o protocolo pareado, mas não igualam custo computacional. Tempo e número de avaliações de fitness são registrados; treinamento do VAE acrescenta custo que não aparece nessa contagem. Os benchmarks de amostragem não são uma busca evolutiva completa e usam limites diferentes: crossovers têm caixa derivada dos pais, enquanto Gaussianas/VAE não são truncados no laboratório 2D. Na Iris todos os geradores novos são limitados à caixa do contexto.
+Mesmas seeds e gerações tornam o protocolo pareado, mas não igualam custo computacional. Tempo e número de avaliações de fitness são registrados; treinamento do VAE acrescenta custo que não aparece nessa contagem. Os benchmarks de amostragem não são uma busca evolutiva completa e usam limites diferentes: crossovers têm caixa derivada dos pais, enquanto Gaussianas/VAE não são truncados no laboratório 2D. Na suíte evolutiva Iris, os candidatos dos EDAs são limitados à caixa do contexto. O controle de Gaussiana direta da 2.5 não aplica clipping nem sobrevivência.
 
 Cross-fitting refaz padronização, calibração e modelos usando exclusivamente o treinamento externo. O discriminador interno usa somente reais reservados e sintéticos gerados daquele treinamento. O escore mede distinguibilidade nesse protocolo; não comprova equivalência das distribuições. A fração de pontos fora do casco convexo é descritiva, não evidência suficiente de criatividade ou generalização OOD.
 
@@ -57,3 +59,47 @@ No VAE, uma sonda usa latentes fixos e RNG independente para medir variância da
 Os cálculos diagnósticos não entram no contador de avaliações da busca, mas seu custo entra no tempo de execução. Comparar tempos exige a mesma flag `RECORD_DIAGNOSTICS`. Desligá-la não altera populações nem perdas, como verificado pelo teste de neutralidade. Nessa opção, tabelas diagnósticas e amostras da última geração ficam vazias.
 
 As quatro variantes exploratórias do VAE alteram uma opção por vez: referência; β=0,1; latente=8; fração parental=1,0. Foram usadas três sementes, com 40 gerações e 30 épocas por ajuste. Elas não constituem busca exaustiva nem validação externa de um novo default. Os padrões β=1, latente=32 e fração parental=0,5 permanecem. Ver resultados em [REVISAO_METODOLOGICA.md](REVISAO_METODOLOGICA.md).
+
+
+## Alternativas e avaliação incorporadas em 2.4 e 2.5
+
+A seleção parental dos EDAs pode preservar nichos; produtos gaussianos podem ser condicionados à espécie e o VAE pode usar warmup de KL. Na 2.5, foram acrescentadas sobrevivência probabilística por rank com elitismo, novidade por faixa interquartil calibrada no treino e treinamento VAE com pais iniciais fixos. Este último congela os pais selecionados da primeira geração, não todos os reais. Arquitetura e taxa de aprendizado foram avaliadas em contrastes isolados.
+
+Os protocolos separam treino, triagem e confirmação internas e teste externo posterior à decisão. Na 2.5 full, cinco folds externos e dois internos totalizam 725 jobs; a população evolutiva mantém 150 indivíduos, mas a avaliação discriminativa externa usa uma amostra balanceada contra os 30 reais reservados. As gerações 5/10/20/40 são observações da mesma trajetória, não critérios externos de parada. Consulte os protocolos [2.4](REFINAMENTO_2_4.md) e [2.5](REFINAMENTO_2_5.md).
+
+| Conceito | Uso e interpretação |
+|---|---|
+| Fitness P/N/C | Orienta a evolução dos indivíduos; padrão 0,50 plausibilidade + 0,25 novidade + 0,25 coerência. |
+| Perda conjunta | Avalia configurações: 50% candidatos e 50% sobreviventes; menor é melhor, com guardas por espécie. Não equivale ao fitness. |
+| Discriminador real/sintético | Mede distinguibilidade no protocolo testado. Acurácia próxima de 50% em classes balanceadas não prova igualdade de distribuições. |
+| Utilidade | Classificador treinado nos sintéticos prevê espécies de reais reservados. Maior acurácia balanceada é melhor para essa tarefa. |
+| Diagnósticos | Diversidade, proximidade, fundadores, KL e resposta do decoder ajudam a interpretar mecanismos; não constituem explicação causal completa. |
+
+A Gaussiana direta ajustada aos reais de treino não evolui: sua perda é de amostra final. Compare-a ao estágio final dos métodos evolutivos, não à perda conjunta. Na utilidade, 150 sintéticos e 120 reais treinam classificadores avaliados no mesmo teste externo; a diferença de tamanho limita a comparação. Discriminadores e utilidade não escolhem hiperparâmetros na busca.
+
+A 2.5 não demonstrou ganho adicional do procedimento selecionado sobre a 2.4. Defaults permanecem; nichos dinâmicos, híbrido com cota exata 50/50 e fila histórica VAE continuam adiados. A avaliação é exploratória na Iris. Veja [resultados](RESULTADOS_REFINAMENTO_2_5.md) e [validação/proveniência](REVISAO_2_5.md).
+
+
+## Fluxo da avaliação 2.5
+
+```mermaid
+flowchart TD
+    A[Divisão externa] --> B[Treino externo]
+    A --> C[Teste reservado]
+    B --> D[Triagem nos folds internos]
+    D --> E[Referência e um finalista]
+    E --> F[Confirmação interna]
+    F --> G{Ganho e guardas atendidos?}
+    G -->|Sim| H[Escolher finalista]
+    G -->|Não| I[Manter referência]
+    H --> J[Avaliação externa]
+    I --> J
+    C --> J
+    B --> K[Controles predefinidos]
+    K --> L[Diagnósticos externos e utilidade]
+    C --> L
+    J --> M[Consolidar e auditar]
+    L --> M
+```
+
+Os finalistas também são avaliados externamente para diagnóstico mesmo quando rejeitados internamente; isso não altera a escolha do procedimento. Controles e utilidade são relatados separadamente e não retroalimentam a seleção.

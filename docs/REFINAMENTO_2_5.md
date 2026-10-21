@@ -1,6 +1,6 @@
 # Iteração 2.5 — qualidade da geração e concentração seletiva
 
-Protocolo registrado antes da execução full. A Iris já foi examinada em iterações anteriores: os resultados são exploratórios e não substituem validação numa base independente.
+Protocolo registrado antes da execução full e preservado como referência. A execução foi concluída; consulte [os resultados](RESULTADOS_REFINAMENTO_2_5.md) e [a revisão técnica](REVISAO_2_5.md). A Iris já foi examinada em iterações anteriores: os resultados são exploratórios e não substituem validação numa base independente.
 
 ## Diagnóstico de partida
 
