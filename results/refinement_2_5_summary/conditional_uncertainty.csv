@@ -1,0 +1,3 @@
+condition,delta_loss,conditional_ci_low,conditional_ci_high,seeds,interpretation
+SBX,0.0,0.0,0.0,5,"algorithmic uncertainty conditional on fixed data/splits; exploratory, not population CI"
+vae_eda,-0.09469508919307373,-0.11661005885546794,-0.06925244065759108,5,"algorithmic uncertainty conditional on fixed data/splits; exploratory, not population CI"

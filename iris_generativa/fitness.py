@@ -57,6 +57,11 @@ def generative_fitness(
         np.exp(-0.5 * ((nearest_distance - novelty_target) / novelty_sigma) ** 2)
     )
 
+    if ctx.get("novelty_policy", "target") == "band":
+        lower, upper = ctx["novelty_bands"][task]  # Intervalo real-real apenas do treino.
+        gap = max(lower - nearest_distance, nearest_distance - upper, 0.0)  # Zero dentro.
+        novelty = float(np.exp(-0.5 * (gap / novelty_sigma) ** 2))  # Decai fora da faixa.
+
     coherence = coherence_score(point, task, ctx)
 
     weights = ctx.get(

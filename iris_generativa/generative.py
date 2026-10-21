@@ -40,6 +40,7 @@ def run_eda(
     record_diagnostics=config.RECORD_DIAGNOSTICS,
     parent_policy="top",  # top mantém a referência; niching preserva cotas parentais.
     boundary_policy="clip",  # Alternativa experimental: reamostragem limitada.
+    fixed_parents=False,  # Controle VAE: congela os pais da primeira geração.
     resample_attempts=5,  # Limite de novas tentativas por candidato inválido.
 ):
     """Atualiza modelos nos melhores pais de cada tarefa e amostra uma nova geração."""
@@ -70,6 +71,7 @@ def run_eda(
     diagnostic_rows, latent_rows = [], []
     birth_generations = {t: np.zeros(len(p), dtype=int) for t, p in populations.items()}
     final_candidates = {}
+    fixed_training = None  # Mesmo tamanho parental e orçamento de atualizações.
     started = perf_counter()
     for generation in progress(range(1, generations + 1), method, show_progress):
         selected = {}
@@ -81,6 +83,10 @@ def run_eda(
                 if parent_policy == "top"
                 else select_next_population(points, task, ctx, count, rng)
             )  # Cotas nos nichos já existentes.
+        if fixed_parents:
+            if fixed_training is None:
+                fixed_training = {t: p.copy() for t, p in selected.items()}  # Congela sem RNG adicional.
+            selected = fixed_training  # Contraste isolado com pais evolutivos.
         should_fit = (
             model is None or (generation - 1) % refit_every == 0 or method != "vae_eda"
         )
@@ -231,6 +237,16 @@ def run_condition(context, seed, condition, **options):
     started = perf_counter()
     context = dict(context)  # Não altera o contexto compartilhado entre experimentos.
     options = dict(options)  # Evita mutação das opções fornecidas pelo chamador.
+    survivor_policy = options.pop("survivor_policy", "deterministic")  # Opção comum aos motores.
+    elite = options.pop("survivor_elite_fraction", 0.1)  # Fração elitista dentro da cota.
+    if survivor_policy not in {"deterministic", "rank"} or not 0 <= elite <= 1:
+        raise ValueError("Política de sobrevivência inválida.")
+    context["survivor_policy"] = survivor_policy  # Cópia isolada por execução.
+    context["survivor_elite_fraction"] = elite  # Não altera o contexto de outras variantes.
+    novelty_policy = options.pop("novelty_policy", "target")  # Alvo histórico ou intervalo.
+    if novelty_policy not in {"target", "band"}:
+        raise ValueError("Política de novidade inválida.")
+    context["novelty_policy"] = novelty_policy  # Quantis calculados exclusivamente no treino.
     weights = options.pop("fitness_weights", None)  # Sobrescrita explícita do fitness.
     if weights is not None:
         if (

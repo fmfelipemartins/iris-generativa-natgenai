@@ -105,6 +105,22 @@ def select_next_population(
     return_indices: bool = False,
 ) -> np.ndarray:
     """Seleciona a próxima população com ou sem moderação por nichos."""
+    policy = ctx.get("survivor_policy", "deterministic")  # Referência preservada.
+    elite_fraction = ctx.get("survivor_elite_fraction", 0.1)  # Elitismo por nicho.
+    if policy not in {"deterministic", "rank"} or not 0 <= elite_fraction <= 1:
+        raise ValueError("Política de sobrevivência inválida.")
+
+    def choose(ranked, count):
+        """Amostra sem reposição por posição, preservando os melhores explicitamente."""
+        count = min(count, len(ranked))  # Não inventa indivíduos em nichos vazios.
+        if policy == "deterministic" or count == 0:
+            return ranked[:count]  # Não consome RNG no caminho histórico.
+        elite = min(count, int(np.floor(count * elite_fraction)))  # Elitismo limitado.
+        pool = ranked[elite:]  # Remove os indivíduos já garantidos.
+        weights = np.arange(len(pool), 0, -1, dtype=float)  # Rank linear positivo.
+        chosen = rng.choice(pool, count - elite, replace=False, p=weights / weights.sum())
+        return np.r_[ranked[:elite], chosen]  # Sem duplicação de índices.
+
     scores = np.array(
         [generative_fitness(point, task, ctx)[0] for point in candidates],
         dtype=float,
@@ -132,11 +148,11 @@ def select_next_population(
             continue
 
         ranked = available[np.argsort(scores[available])[::-1]]
-        selected_indices.extend(ranked[: min(quota, len(ranked))].tolist())
+        selected_indices.extend(choose(ranked, quota).tolist())
 
     selected_set = set(selected_indices)
     remaining = [idx for idx in np.argsort(scores)[::-1] if idx not in selected_set]
-    selected_indices.extend(remaining[: pop_size - len(selected_indices)])
+    selected_indices.extend(choose(np.asarray(remaining, dtype=int), pop_size - len(selected_indices)).tolist())
     selected_array = np.array(
         selected_indices[:pop_size],
         dtype=int,

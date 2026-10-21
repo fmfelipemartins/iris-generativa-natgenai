@@ -1,0 +1,100 @@
+{
+  "selected": "learning_rate",
+  "accepted": [
+    "learning_rate"
+  ],
+  "checks": {
+    "learning_rate": {
+      "minimum_gain": true,
+      "survivor_metrics": true,
+      "exact_duplicates": true,
+      "candidate_metrics": true,
+      "per_species_metrics": true
+    }
+  },
+  "reference_loss": 2.545453332170659,
+  "margins": {
+    "wasserstein": 0.06112640852092719,
+    "covariance_error": 0.15946568400628017,
+    "correlation_error": 0.07545662001512152,
+    "diversity_error": 0.05175389344119423,
+    "coverage": 0.1386613343892683,
+    "near_copy_rate": 0.05,
+    "incoherence": 0.05
+  },
+  "rule": "5% loss reduction; per-metric guards; no increase in exact duplicates",
+  "condition": "vae_eda",
+  "outer": 2,
+  "finalists": [
+    "learning_rate"
+  ],
+  "screen_rank": [
+    "learning_rate",
+    "reference",
+    "hidden32",
+    "fixed_parents",
+    "latent2"
+  ],
+  "options": {
+    "pop_size": 50,
+    "generations": 40,
+    "show_progress": false,
+    "record_diagnostics": true,
+    "selection_policy": "task_niching",
+    "fitness_weights": {
+      "plausibility": 0.5,
+      "novelty": 0.25,
+      "coherence": 0.25
+    },
+    "parent_fraction": 0.5,
+    "parent_policy": "top",
+    "boundary_policy": "clip",
+    "resample_attempts": 5,
+    "vae_epochs": 30,
+    "warm_start": true,
+    "refit_every": 1,
+    "model_options": {
+      "latent": 32,
+      "hidden": 64,
+      "learning_rate": 0.0003,
+      "beta": 1.0,
+      "batch_size": 32,
+      "kl_warmup_steps": 0
+    }
+  },
+  "finalist_options": {
+    "pop_size": 50,
+    "generations": 40,
+    "show_progress": false,
+    "record_diagnostics": true,
+    "selection_policy": "task_niching",
+    "fitness_weights": {
+      "plausibility": 0.5,
+      "novelty": 0.25,
+      "coherence": 0.25
+    },
+    "parent_fraction": 0.5,
+    "parent_policy": "top",
+    "boundary_policy": "clip",
+    "resample_attempts": 5,
+    "vae_epochs": 30,
+    "warm_start": true,
+    "refit_every": 1,
+    "model_options": {
+      "latent": 32,
+      "hidden": 64,
+      "learning_rate": 0.0003,
+      "beta": 1.0,
+      "batch_size": 32,
+      "kl_warmup_steps": 0
+    }
+  },
+  "reason": "Ganho mínimo e todas as guardas satisfeitos.",
+  "screen_losses": {
+    "reference": 2.1639963684057304,
+    "fixed_parents": 2.2248127706929215,
+    "latent2": 2.728167586771669,
+    "hidden32": 2.1717402525238936,
+    "learning_rate": 2.054898092925243
+  }
+}

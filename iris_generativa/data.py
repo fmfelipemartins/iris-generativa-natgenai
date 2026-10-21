@@ -9,7 +9,7 @@ from sklearn.datasets import load_iris
 from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import StandardScaler
 
-from .config import K_NEIGHBORS, N_NICHES
+from .config import K_NEIGHBORS, N_NICHES, REFINEMENT25_NOVELTY_QUANTILES
 
 
 def load_iris_data() -> dict:
@@ -57,6 +57,7 @@ def prepare_context(
     tasks = sorted(np.unique(y_source).tolist())
     real_by_task = {task: z_source[y_source == task] for task in tasks}
 
+    novelty_bands = {}  # Intervalo interquartil das distâncias reais de treino.
     novelty_targets = {}
     novelty_sigmas = {}
     plausibility_scales = {}
@@ -67,6 +68,7 @@ def prepare_context(
         task_points = real_by_task[task]
         nearest, mean_knn = nearest_neighbor_profile(task_points)
 
+        novelty_bands[task] = np.quantile(nearest, REFINEMENT25_NOVELTY_QUANTILES).tolist()  # Sem holdout.
         novelty_targets[task] = float(np.median(nearest))
         robust_scale = float(
             np.subtract(*np.percentile(nearest, [75, 25])) / 1.349
@@ -101,6 +103,7 @@ def prepare_context(
         "y_real": y_source.copy(),
         "tasks": tasks,
         "real_by_task": real_by_task,
+        "novelty_bands": novelty_bands,  # Calibração para a variante opt-in.
         "novelty_targets": novelty_targets,
         "novelty_sigmas": novelty_sigmas,
         "plausibility_scales": plausibility_scales,

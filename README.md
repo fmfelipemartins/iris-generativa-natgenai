@@ -92,3 +92,11 @@ A nova iteração acrescenta seleção parental por nichos, produtos condicionad
 Consulte [o protocolo e seus limites](docs/REFINAMENTO_2_4.md). Para executar a avaliação aninhada: `python scripts/refine_experiments.py --profile full --phase nested --output results/refinement_local_full --workers 4`. Essa busca é mais custosa que executar uma vez o notebook. Resultados parciais são salvos por job.
 
 A avaliação completa desta iteração e sua interpretação estão em [Resultados do refinamento 2.4](docs/RESULTADOS_REFINAMENTO_2_4.md). A seção 7 do notebook também lê a consolidação versionada em `results/refinement_2_4_summary`, sem executar a busca novamente. Os registros individuais completos são preservados no arquivo de evidências da execução; a consolidação contém as tabelas externas, as decisões de seleção e a auditoria.
+
+## Refinamento 2.5
+
+A iteração 2.5 isola os efeitos da seleção por rank, da novidade por faixa e da concentração dos pais do VAE. O protocolo limita a busca principal a 725 execuções e mantém os padrões históricos. Inclui uma Gaussiana direta sem evolução, controles de transferência, utilidade dos sintéticos e proximidade dos reais reservados.
+
+Consulte [o protocolo 2.5](docs/REFINAMENTO_2_5.md). Execute com `python scripts/refine_25.py --profile full --workers 4 --output results/refinement_2_5_full`. Ao concluir, use `python scripts/report_25.py results/refinement_2_5_full results/refinement_2_5_summary` e `python tests/audit_refinement25.py results/refinement_2_5_full`. A seção 8 do notebook lê o resumo sem iniciar a busca.
+
+A avaliação está consolidada em [Resultados do refinamento 2.5](docs/RESULTADOS_REFINAMENTO_2_5.md). Não houve ganho adicional no procedimento selecionado em relação à 2.4; os contrastes esclareceram a concentração do VAE e os compromissos da transferência gaussiana.

@@ -1,0 +1,9 @@
+{
+  "jobs": 725,
+  "spec_hashes_valid": true,
+  "train_valid_disjoint": true,
+  "finite_losses": true,
+  "expected_jobs": 725,
+  "defaults_changed": false,
+  "limitation": "Historical Iris; exploratory evidence"
+}

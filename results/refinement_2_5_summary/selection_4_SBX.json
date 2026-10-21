@@ -1,0 +1,79 @@
+{
+  "selected": "reference",
+  "accepted": [],
+  "checks": {
+    "novelty_band": {
+      "minimum_gain": false,
+      "survivor_metrics": true,
+      "exact_duplicates": true,
+      "candidate_metrics": true,
+      "per_species_metrics": false
+    }
+  },
+  "reference_loss": 1.412151625104007,
+  "margins": {
+    "wasserstein": 0.06305104591541577,
+    "covariance_error": 0.16469659104130135,
+    "correlation_error": 0.07378239191201266,
+    "diversity_error": 0.05376538899605813,
+    "coverage": 0.13585221665836192,
+    "near_copy_rate": 0.05,
+    "incoherence": 0.05
+  },
+  "rule": "5% loss reduction; per-metric guards; no increase in exact duplicates",
+  "condition": "SBX",
+  "outer": 4,
+  "finalists": [
+    "novelty_band"
+  ],
+  "screen_rank": [
+    "novelty_band",
+    "reference",
+    "eta20",
+    "rank_selection",
+    "no_transfer"
+  ],
+  "options": {
+    "pop_size": 50,
+    "generations": 40,
+    "show_progress": false,
+    "record_diagnostics": true,
+    "selection_policy": "task_niching",
+    "fitness_weights": {
+      "plausibility": 0.5,
+      "novelty": 0.25,
+      "coherence": 0.25
+    },
+    "rmp": 0.2,
+    "sbx_eta": 50.0,
+    "sbx_mode": "symmetric",
+    "tournament_size": 3,
+    "use_polynomial_mutation": false
+  },
+  "finalist_options": {
+    "pop_size": 50,
+    "generations": 40,
+    "show_progress": false,
+    "record_diagnostics": true,
+    "selection_policy": "task_niching",
+    "fitness_weights": {
+      "plausibility": 0.5,
+      "novelty": 0.25,
+      "coherence": 0.25
+    },
+    "rmp": 0.2,
+    "sbx_eta": 50.0,
+    "sbx_mode": "symmetric",
+    "tournament_size": 3,
+    "use_polynomial_mutation": false,
+    "novelty_policy": "band"
+  },
+  "reason": "Finalista não satisfez conjuntamente ganho mínimo e guardas; referência mantida.",
+  "screen_losses": {
+    "reference": 1.2951070485995175,
+    "rank_selection": 1.4493277002390264,
+    "novelty_band": 1.2857224627837855,
+    "no_transfer": 1.4973082225884904,
+    "eta20": 1.3110005821064883
+  }
+}
