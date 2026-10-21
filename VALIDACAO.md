@@ -1,3 +1,11 @@
+# Estado atual — iteração 2.5
+
+A iteração 2.5 foi integrada à main em 21/10/2026, após revisão técnica e validação local: **28 testes aprovados**, **725 execuções full auditadas** e conferência da seção 8 do notebook. A validação local não reexecutou a busca completa. Consulte [a revisão técnica](docs/REVISAO_2_5.md) e [os resultados e limites](docs/RESULTADOS_REFINAMENTO_2_5.md).
+
+As seções abaixo são registros históricos. Suas contagens e pendências descrevem o momento de cada entrega, não o estado atual.
+
+---
+
 # Validação da revisão 2.3.1 — 19/10/2026
 
 A execução `full` enviada pelo usuário foi preservada sem alterações em `results/baseline_full_20261019`. A revisão atual corrige SBX e acrescenta diagnósticos neutros ao VAE. O relatório e os números consolidados estão em [docs/REVISAO_METODOLOGICA.md](docs/REVISAO_METODOLOGICA.md).

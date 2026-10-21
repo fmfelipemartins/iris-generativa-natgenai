@@ -73,7 +73,8 @@ Essas diferenças são descritivas, sem declaração de superioridade estatísti
 
 ## Entrega e validação
 
-- 26 testes passaram; comparação funcional dos defaults reproduziu exatamente as populações do commit anterior em quatro famílias no cenário de regressão documentado.
+- Na entrega inicial, 26 testes passaram; comparação funcional dos defaults reproduziu exatamente as populações do commit anterior em quatro famílias no cenário de regressão documentado.
+- Após a revisão técnica, 28 testes passaram, incluindo elitismo total e auditoria sob `python -O`; a validação local também aprovou os 28 testes. As auditorias foram reaplicadas e 22 arquivos consolidados reproduzidos byte a byte, sem repetir a geração. Ver [revisão técnica](REVISAO_2_5.md).
 - Perfil quick final: 74 jobs, auditoria de integridade e de divisões/decisões aprovada; não usado para inferir desempenho.
 - Full: 300 triagens, 200 confirmações, 100 avaliações externas e 125 controles.
 - Auditorias verificaram hashes dos jobs e do código, perdas finitas, índices disjuntos, reconstrução dos folds/seeds, pareamento da confirmação e decisões recalculadas apenas com dados internos.

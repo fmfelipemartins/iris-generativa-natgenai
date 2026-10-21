@@ -1,6 +1,6 @@
 # Revisão técnica da iteração 2.5
 
-Revisão do PR #3, realizada antes da validação na máquina do usuário e do merge.
+Revisão técnica do PR #3, com registro de encerramento após a validação local e o merge em 21/10/2026.
 
 ## Achados corrigidos
 
@@ -24,4 +24,4 @@ As correções alteram hashes de código. Para retomar/reproduzir exatamente aqu
 
 ## Situação
 
-Revisão técnica e conferência dos resultados concluídas com as correções acima. A avaliação continua exploratória na Iris, sem ganho adicional demonstrado sobre a 2.4. Ainda faltam a validação local do usuário e sua autorização para o merge. Nenhuma mudança nos defaults de geração.
+Revisão técnica e conferência dos resultados concluídas com as correções acima. A avaliação continua exploratória na Iris, sem ganho adicional demonstrado sobre a 2.4. A validação local concluiu 28 testes em 38,38 s e confirmou a leitura da seção 8: 725/725 execuções, perfil full e defaults preservados. Após autorização do usuário, o PR #3 foi integrado à main no commit `e06406a183a81dcc724e0515188ff68289b35e37`; a cópia local foi sincronizada. Essa validação local não repetiu os 725 experimentos. Nenhuma mudança nos defaults de geração.
