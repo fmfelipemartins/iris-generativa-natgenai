@@ -63,3 +63,24 @@ def test_protocol_has_fixed_bounded_catalog():
     assert protocol("full")["max_jobs"] == 725  # Limite principal acordado, inferior a 800.
     for family in ["SBX", "vae_eda"]:
         assert len(catalog(family, 40, 30)) == 5  # Referência mais quatro contrastes.
+
+
+def test_rank_total_elitism_does_not_sample_empty_pool():
+    ctx = context()  # Todos os indivíduos preenchem exatamente as cotas.
+    points = ctx["real_by_task"][0]  # Mesmos pontos nas duas políticas.
+    expected = select_next_population(points, 0, ctx, len(points), np.random.default_rng(7), return_indices=True)
+    ctx.update(survivor_policy="rank", survivor_elite_fraction=1.0)  # Limite permitido pela API.
+    actual = select_next_population(points, 0, ctx, len(points), np.random.default_rng(7), return_indices=True)
+    np.testing.assert_array_equal(actual, expected)  # Elitismo total deve ser determinístico.
+
+
+def test_audit_rejects_incomplete_run_with_python_optimization(tmp_path):
+    import json  # Constrói uma rodada propositalmente incompleta.
+    import subprocess  # Executa com o mesmo flag que remove asserts.
+    root = Path(__file__).parents[1]  # Localiza o script público.
+    (tmp_path / "jobs").mkdir()  # Nenhum job concluído.
+    (tmp_path / "manifest.json").write_text(json.dumps({"budget": {"max_jobs": 1}}))  # Um job esperado.
+    (tmp_path / "COMPLETE.json").write_text(json.dumps({"completed_jobs": 1}))  # Marcador falso de conclusão.
+    result = subprocess.run([sys.executable, "-O", str(root / "scripts" / "report_25.py"), str(tmp_path), str(tmp_path / "summary")], capture_output=True, text=True)  # Não treina modelos.
+    assert result.returncode != 0 and "Auditoria inv" in result.stderr  # Rejeita pela validação explícita.
+    assert not (tmp_path / "summary" / "audit.json").exists()  # Não publica aprovação indevida.

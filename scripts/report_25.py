@@ -13,17 +13,22 @@ def report(directory, output):
     complete = json.loads((directory / "COMPLETE.json").read_text())  # Exige término declarado.
     b = manifest["budget"]  # Orçamento congelado, não inferido das saídas.
     paths = sorted((directory / "jobs").glob("*.json"))  # Jobs atômicos completos.
-    assert len(paths) == b["max_jobs"] == complete["completed_jobs"]  # Não aceita rodada incompleta.
+    if not (len(paths) == b["max_jobs"] == complete["completed_jobs"]):  # Verificação ativa também com python -O.
+        raise ValueError('Auditoria inválida: Não aceita rodada incompleta.')
     output.mkdir(parents=True, exist_ok=True)  # Resumo separado dos jobs volumosos.
     diagnostics, latents, training, utility, controls, selected, checks = [], [], [], [], [], [], []
     rows = []  # Conserva identidade de cada unidade experimental.
     for path in paths:
         r = json.loads(path.read_text())  # Leitura de um arquivo por vez.
         s = r["spec"]  # Chave de execução.
-        assert path.stem == sha256(json.dumps(s, sort_keys=True).encode()).hexdigest()  # Nome íntegro.
-        assert not set(s["train"]) & set(s["valid"])  # Sem sobreposição de treino/validação.
-        assert set(r["evaluation_indices"]) <= set(s["valid"])  # Amostra vem do holdout declarado.
-        assert np.isfinite(r["loss"])  # Não aceita falhas como resultados.
+        if not (path.stem == sha256(json.dumps(s, sort_keys=True).encode()).hexdigest()):  # Verificação ativa também com python -O.
+            raise ValueError('Auditoria inválida: Nome íntegro.')
+        if not (not set(s["train"]) & set(s["valid"])):  # Verificação ativa também com python -O.
+            raise ValueError('Auditoria inválida: Sem sobreposição de treino/validação.')
+        if not (set(r["evaluation_indices"]) <= set(s["valid"])):  # Verificação ativa também com python -O.
+            raise ValueError('Auditoria inválida: Amostra vem do holdout declarado.')
+        if not (np.isfinite(r["loss"])):  # Verificação ativa também com python -O.
+            raise ValueError('Auditoria inválida: Não aceita falhas como resultados.')
         key = {k: s[k] for k in ["condition", "variant", "stage", "outer", "seed"]}  # Pareamento explícito.
         row = dict(key, loss=r["loss"], survivor_loss=r.get("survivor_loss", r["loss"]), candidate_loss=r.get("candidate_loss"), seconds=r["seconds"], **r["metrics"], **r.get("discriminators", {}))
         row.update({"candidate_" + k: v for k, v in r.get("candidate_metrics", {}).items()})  # Candidatos separados.

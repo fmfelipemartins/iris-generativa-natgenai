@@ -116,6 +116,8 @@ def select_next_population(
         if policy == "deterministic" or count == 0:
             return ranked[:count]  # Não consome RNG no caminho histórico.
         elite = min(count, int(np.floor(count * elite_fraction)))  # Elitismo limitado.
+        if elite == count:
+            return ranked[:elite]  # Elitismo total dispensa sorteio de um conjunto vazio.
         pool = ranked[elite:]  # Remove os indivíduos já garantidos.
         weights = np.arange(len(pool), 0, -1, dtype=float)  # Rank linear positivo.
         chosen = rng.choice(pool, count - elite, replace=False, p=weights / weights.sum())

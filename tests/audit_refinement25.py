@@ -20,24 +20,31 @@ def audit(directory):
                            confirm=2 * budget["outer_folds"] * budget["inner_folds"] * 2 * len(budget["confirm_seeds"]),
                            external=4 * budget["outer_folds"] * len(budget["final_seeds"]),
                            controls=5 * budget["outer_folds"] * len(budget["final_seeds"]))
-    assert Counter(r["spec"]["stage"] for r in records) == expected_stages  # Não compensa falta de uma fase com excesso em outra.
+    if not (Counter(r["spec"]["stage"] for r in records) == expected_stages):  # Verificação ativa também com python -O.
+        raise ValueError('Auditoria inválida: Não compensa falta de uma fase com excesso em outra.')
     for outer, (train, holdout) in enumerate(splits):
         inner = [(train[a].tolist(), train[b].tolist()) for a, b in StratifiedKFold(budget["inner_folds"], shuffle=True, random_state=12000 + outer).split(x[train], y[train])]
         for r in [r for r in records if r["spec"]["outer"] == outer]:
             s = r["spec"]  # Identidade dos dados efetivamente usados.
             if s["stage"] in ["screen", "confirm"]:
-                assert (s["train"], s["valid"]) in inner  # Nenhum índice externo participa da seleção.
-                assert s["seed"] in budget[s["stage"] + "_seeds"]  # Seeds internas declaradas.
+                if not ((s["train"], s["valid"]) in inner):  # Verificação ativa também com python -O.
+                    raise ValueError('Auditoria inválida: Nenhum índice externo participa da seleção.')
+                if not (s["seed"] in budget[s["stage"] + "_seeds"]):  # Verificação ativa também com python -O.
+                    raise ValueError('Auditoria inválida: Seeds internas declaradas.')
             else:
-                assert s["train"] == train.tolist() and s["valid"] == holdout.tolist()  # Mesmo teste por variante.
-                assert s["seed"] in budget["final_seeds"]  # Seeds finais independentes.
+                if not (s["train"] == train.tolist() and s["valid"] == holdout.tolist()):  # Verificação ativa também com python -O.
+                    raise ValueError('Auditoria inválida: Mesmo teste por variante.')
+                if not (s["seed"] in budget["final_seeds"]):  # Verificação ativa também com python -O.
+                    raise ValueError('Auditoria inválida: Seeds finais independentes.')
         for condition in ["SBX", "vae_eda"]:
             decision = json.loads((directory / f"selection_{outer}_{slug(condition)}.json").read_text())  # Escolha registrada.
             confirmed = [r for r in records if r["spec"]["outer"] == outer and r["spec"]["condition"] == condition and r["spec"]["stage"] == "confirm"]
             recomputed = choose_guarded(confirmed)  # Reavalia usando somente confirmação interna.
-            assert decision["selected"] == recomputed["selected"] and decision["checks"] == recomputed["checks"]  # Sem promoção pelo teste.
+            if not (decision["selected"] == recomputed["selected"] and decision["checks"] == recomputed["checks"]):  # Verificação ativa também com python -O.
+                raise ValueError('Auditoria inválida: Sem promoção pelo teste.')
             paired = Counter((tuple(r["spec"]["train"]), tuple(r["spec"]["valid"]), r["spec"]["seed"]) for r in confirmed)
-            assert len(paired) == budget["inner_folds"] * len(budget["confirm_seeds"]) and set(paired.values()) == {2}  # Referência e finalista pareados.
+            if not (len(paired) == budget["inner_folds"] * len(budget["confirm_seeds"]) and set(paired.values()) == {2}):  # Verificação ativa também com python -O.
+                raise ValueError('Auditoria inválida: Referência e finalista pareados.')
     return dict(jobs=len(records), stages=expected_stages, split_reconstruction=True, decision_reconstruction=True, paired_confirmation=True)
 
 
