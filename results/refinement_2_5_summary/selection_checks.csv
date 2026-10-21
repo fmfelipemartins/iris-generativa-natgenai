@@ -1,0 +1,11 @@
+condition,outer,variant,selected,minimum_gain,survivor_metrics,exact_duplicates,candidate_metrics,per_species_metrics
+SBX,0,eta20,reference,False,True,True,True,False
+vae_eda,0,fixed_parents,reference,True,True,True,False,False
+SBX,1,eta20,reference,True,True,True,True,False
+vae_eda,1,learning_rate,reference,True,True,True,False,False
+SBX,2,eta20,reference,False,True,True,True,False
+vae_eda,2,learning_rate,learning_rate,True,True,True,True,True
+SBX,3,eta20,reference,False,True,True,False,False
+vae_eda,3,learning_rate,learning_rate,True,True,True,True,True
+SBX,4,novelty_band,reference,False,True,True,True,False
+vae_eda,4,fixed_parents,reference,True,True,True,False,False

@@ -77,3 +77,11 @@ REFINEMENT_MARGIN_FRACTION = 0.25  # Fração da escala real-real tolerada como 
 REFINEMENT_RATE_MARGIN = 0.05  # Tolerância absoluta nas taxas de proximidade e incoerência.
 REFINEMENT_CLIP_TRIGGER = 0.05  # Incidência de clipping que habilita testar reamostragem.
 REFINEMENT_CALIBRATIONS = 20  # Repetições real-real para calibrar perdas usando só o treino.
+
+REFINEMENT25_ELITE_FRACTION = 0.10  # Fração determinística dentro de cada cota na seleção por rank.
+REFINEMENT25_NOVELTY_QUANTILES = (0.25, 0.75)  # Faixa de distâncias reais de treino aceita pela novidade.
+REFINEMENT25_SBX_ETA = 20.0  # Índice de distribuição SBX da variante de maior dispersão.
+REFINEMENT25_VAE_LATENT = 2  # Dimensão latente reduzida, sem mudar largura ou beta.
+REFINEMENT25_VAE_HIDDEN = 32  # Largura reduzida, sem mudar dimensão latente ou beta.
+REFINEMENT25_VAE_LEARNING_RATE = 3e-4  # Taxa alternativa de Adam, isolada da arquitetura.
+REFINEMENT25_CHECKPOINTS = (5, 10, 20, 40)  # Gerações descritivas da mesma trajetória; sem parada externa.

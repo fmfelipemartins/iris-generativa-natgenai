@@ -1,0 +1,12 @@
+{
+  "jobs": 725,
+  "stages": {
+    "screen": 300,
+    "confirm": 200,
+    "external": 100,
+    "controls": 125
+  },
+  "split_reconstruction": true,
+  "decision_reconstruction": true,
+  "paired_confirmation": true
+}

@@ -1,0 +1,12 @@
+{
+  "exact_population_hashes_equal": true,
+  "hashes": {
+    "SBX": "51e963e8542a1739148c82f93196afb52fd4a964e2599f3bc78efc68555840b0",
+    "gaussian_mixture": "f9653639484f40247699d5239d1d9d12534ecbb95ad849d753659598a4488ef8",
+    "gaussian_product": "3f7f99ec555be71a131e36817bc97219db1eea878e879ce956b33e91098e67df",
+    "vae_eda": "6d066465679342bac1c035eeb64acb19bfc735f447326af4be61df8de2e825d1"
+  },
+  "seed": 7,
+  "generations": 3,
+  "pop_size": 10
+}

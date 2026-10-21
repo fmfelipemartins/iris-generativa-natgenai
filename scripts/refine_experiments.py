@@ -131,6 +131,13 @@ def evaluate_job(spec):
         )  # Mesmo tamanho da calibração real-real.
         if spec["variant"] == "initialization":
             result = initialization(ctx, spec["seed"])  # Controle sem evolução.
+        elif spec["variant"] == "direct_gaussian":
+            from iris_generativa.gaussian import GaussianGenerator  # Controle sem evolução.
+            model = GaussianGenerator("gaussian_mixture", own_weight=1.0).fit(ctx["real_by_task"])
+            rng = np.random.default_rng(spec["seed"])  # Amostragem independente e reproduzível.
+            points = np.vstack([model.sample(t, 50, rng)[0] for t in ctx["tasks"]])
+            result = dict(synthetic_x=ctx["scaler"].inverse_transform(points),
+                          synthetic_species=np.repeat(ctx["tasks"], 50))  # Sem seleção ou clipping.
         else:
             result = run_condition(
                 ctx, spec["seed"], spec["condition"], **spec["options"]
@@ -231,6 +238,30 @@ def evaluate_job(spec):
             record["loss"] = 0.5 * (
                 record["survivor_loss"] + record["candidate_loss"]
             )  # Peso igual predefinido para candidatos e sobreviventes.
+        if spec.get("research_evaluation", False):
+            from sklearn.ensemble import RandomForestClassifier  # Utilidade secundária, sem tuning.
+            from sklearn.metrics import balanced_accuracy_score  # Mesma avaliação por espécie.
+            utility = {}  # Treina em populações completas; teste real reservado comum.
+            for source, fit_x, fit_y in (
+                ("synthetic", result["synthetic_x"], result["synthetic_species"]),
+                ("real", x[train], y[train]),
+            ):
+                classifier = RandomForestClassifier(n_estimators=spec["trees"], random_state=731, n_jobs=1)
+                classifier.fit(fit_x, fit_y)  # Nunca ajusta com os rótulos do teste.
+                prediction = classifier.predict(x[valid])  # Somente mensuração.
+                utility[source] = float(balanced_accuracy_score(y[valid], prediction))
+                utility[source + "_by_task"] = {str(t): float(np.mean(prediction[y[valid] == t] == t)) for t in ctx["tasks"]}
+            record["utility"] = utility  # Não participa de choose_guarded.
+            proximity = []  # Contextualiza quase-cópias com reais reservados.
+            for task in ctx["tasks"]:
+                real = ctx["real_by_task"][task]  # Referência exclusivamente de treino.
+                distances = np.linalg.norm(real[:, None] - real[None, :], axis=2)
+                np.fill_diagonal(distances, np.inf)  # Não conta o próprio registro.
+                threshold = max(float(np.quantile(distances.min(axis=1), 0.05)), 1e-12)
+                held = ctx["scaler"].transform(x[valid][y[valid] == task])  # Scaler congelado.
+                nearest = np.linalg.norm(held[:, None] - real[None, :], axis=2).min(axis=1)
+                proximity.append(dict(task=task, threshold=threshold, near_copy_rate=float(np.mean(nearest < threshold)), mean_distance=float(nearest.mean())))
+            record["heldout_proximity"] = proximity  # Diagnóstico, não filtro de seleção.
         record["seconds"] = (
             perf_counter() - started
         )  # Inclui avaliação discriminativa quando habilitada.
@@ -493,6 +524,7 @@ def choose_guarded(rows):
         incoherence=config.REFINEMENT_RATE_MARGIN,
     )  # Guardas explícitas em pontos percentuais.
     accepted = []  # Nenhuma promoção obrigatória.
+    checks = {}  # Motivos auditáveis de aceitação ou rejeição de cada variante.
     for variant in rank_candidates(rows):
         if variant == "reference":
             continue  # Controle não concorre consigo mesmo.
@@ -547,11 +579,15 @@ def choose_guarded(rows):
                         task_guard = (
                             task_guard and new <= old + margin[key]
                         )  # Mesma tolerância declarada.
+        checks[variant] = dict(minimum_gain=bool(improved), survivor_metrics=bool(guarded),
+                               exact_duplicates=bool(duplicates), candidate_metrics=bool(candidate_guard),
+                               per_species_metrics=bool(task_guard))  # Não altera os limiares.
         if improved and guarded and duplicates and candidate_guard and task_guard:
             accepted.append(variant)  # Ranking já está ordenado por perda.
     return dict(
         selected=accepted[0] if accepted else "reference",
         accepted=accepted,
+        checks=checks,  # Cada False identifica uma guarda não satisfeita.
         reference_loss=base_loss,
         margins=margin,
         rule="5% loss reduction; per-metric guards; no increase in exact duplicates",

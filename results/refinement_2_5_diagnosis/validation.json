@@ -1,0 +1,9 @@
+{
+  "unit_tests": 26,
+  "unit_test_failures": 0,
+  "quick_jobs": 74,
+  "quick_integrity_audit": "passed",
+  "quick_split_and_decision_audit": "passed",
+  "default_regression": "Exact synthetic population hashes matched previous HEAD for SBX, VAE, Gaussian mixture and Gaussian product; seed 7, population 10, generations 3.",
+  "notebook": "New reader cell parsed; full search is explicit CLI only."
+}
